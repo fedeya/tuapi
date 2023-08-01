@@ -1156,6 +1156,7 @@ name = "tuapi"
 version = "0.1.0"
 dependencies = [
  "crossterm",
+ "once_cell",
  "ratatui",
  "reqwest",
  "serde",

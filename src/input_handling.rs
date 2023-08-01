@@ -8,7 +8,14 @@ use crate::{
 pub fn handle_input(app: &mut App, key: KeyEvent) {
     match app.input_mode {
         InputMode::Normal => match key.code {
-            KeyCode::Char('i') => app.input_mode = InputMode::Insert,
+            KeyCode::Char('i') => {
+                match app.selected_block {
+                    AppBlock::Endpoint | AppBlock::Request => {
+                        app.input_mode = InputMode::Insert;
+                    }
+                    _ => {}
+                }
+            },
             KeyCode::Char('n') => {
                 if let AppBlock::Request = app.selected_block {
                     app.request_tab = if app.request_tab >= 4 {
@@ -79,8 +86,12 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                 _ => {}
             },
             KeyCode::Enter => {
-                if let AppBlock::Request = app.selected_block {
-                    app.raw_body.push('\n');
+                match app.selected_block {
+                    AppBlock::Request => {
+                        app.raw_body.push('\n');
+                    }
+                    AppBlock::Endpoint => request::handle_request(app),
+                    _ => {}
                 }
             }
             KeyCode::Backspace => match app.selected_block {

@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use std::io::Stdout;
 
 use ratatui::{
@@ -117,18 +118,18 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     frame.render_widget(help_p, main_chunks[2]);
 }
 
-fn highlight_response(response: &str) -> Vec<Line> {
-    let ps = SyntaxSet::load_defaults_newlines();
-    let ts = ThemeSet::load_defaults();
+static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
+static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
-    let syntax = ps.find_syntax_by_extension("json").unwrap();
-    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+fn highlight_response(response: &str) -> Vec<Line> {
+    let syntax = PS.find_syntax_by_extension("json").unwrap();
+    let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
 
     let mut lines: Vec<Line> = Vec::new();
 
     for line in LinesWithEndings::from(response) {
         let ranges: Vec<(syntect::highlighting::Style, &str)> =
-            h.highlight_line(line, &ps).unwrap();
+            h.highlight_line(line, &PS).unwrap();
 
         let spans: Vec<Span> = ranges
             .iter()
