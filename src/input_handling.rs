@@ -8,13 +8,11 @@ use crate::{
 pub fn handle_input(app: &mut App, key: KeyEvent) {
     match app.input_mode {
         InputMode::Normal => match key.code {
-            KeyCode::Char('i') => {
-                match app.selected_block {
-                    AppBlock::Endpoint | AppBlock::Request => {
-                        app.input_mode = InputMode::Insert;
-                    }
-                    _ => {}
+            KeyCode::Char('i') => match app.selected_block {
+                AppBlock::Endpoint | AppBlock::Request => {
+                    app.input_mode = InputMode::Insert;
                 }
+                _ => {}
             },
             KeyCode::Char('n') => {
                 if let AppBlock::Request = app.selected_block {
@@ -85,15 +83,17 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                 }
                 _ => {}
             },
-            KeyCode::Enter => {
-                match app.selected_block {
-                    AppBlock::Request => {
-                        app.raw_body.push('\n');
-                    }
-                    AppBlock::Endpoint => request::handle_request(app),
-                    _ => {}
+            KeyCode::Enter => match app.selected_block {
+                AppBlock::Request => {
+                    app.raw_body.push('\n');
                 }
-            }
+                AppBlock::Endpoint => {
+                    request::handle_request(app);
+
+                    app.input_mode = InputMode::Normal;
+                }
+                _ => {}
+            },
             KeyCode::Backspace => match app.selected_block {
                 AppBlock::Endpoint => {
                     app.endpoint.pop();

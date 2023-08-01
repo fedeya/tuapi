@@ -1,3 +1,4 @@
+use cached::proc_macro::cached;
 use once_cell::sync::Lazy;
 use std::io::Stdout;
 
@@ -97,7 +98,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
 
-            let lines = highlight_response(r.text.as_str());
+            let lines = highlight_response(r.text.clone());
 
             let response_p = Paragraph::new(lines)
                 .block(selectable_block(AppBlock::Response, app).title("Response"))
@@ -121,13 +122,14 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
 static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
-fn highlight_response(response: &str) -> Vec<Line> {
+#[cached]
+fn highlight_response(response: String) -> Vec<Line<'static>> {
     let syntax = PS.find_syntax_by_extension("json").unwrap();
     let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
 
     let mut lines: Vec<Line> = Vec::new();
 
-    for line in LinesWithEndings::from(response) {
+    for line in LinesWithEndings::from(response.as_str()) {
         let ranges: Vec<(syntect::highlighting::Style, &str)> =
             h.highlight_line(line, &PS).unwrap();
 
