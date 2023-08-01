@@ -1,10 +1,10 @@
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum InputMode {
     Normal,
     Insert,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone)]
 pub enum RequestMethod {
     Get,
     Post,
@@ -23,7 +23,42 @@ impl ToString for RequestMethod {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq)]
+pub enum AppBlock {
+    Endpoint,
+    Method,
+    Request,
+    Response,
+}
+
+impl From<AppBlock> for u16 {
+    fn from(block: AppBlock) -> Self {
+        match block {
+            AppBlock::Method => 1,
+            AppBlock::Endpoint => 2,
+            AppBlock::Request => 3,
+            AppBlock::Response => 4,
+        }
+    }
+}
+
+impl Into<AppBlock> for u16 {
+    fn into(self) -> AppBlock {
+        match self {
+            1 => AppBlock::Method,
+            2 => AppBlock::Endpoint,
+            3 => AppBlock::Request,
+            4 => AppBlock::Response,
+            _ => panic!("Invalid block index"),
+        }
+    }
+}
+
+pub struct Response {
+    pub status_code: u16,
+    pub text: String,
+}
+
 pub struct App {
     pub input_mode: InputMode,
 
@@ -31,15 +66,25 @@ pub struct App {
     pub method: RequestMethod,
 
     pub raw_body: String,
+    pub request_tab: u8,
+
+    pub selected_block: AppBlock,
+
+    pub response: Option<Response>,
+    pub response_scroll: (u16, u16),
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             input_mode: InputMode::Normal,
-            endpoint: String::new(),
+            endpoint: String::from("https://restcountries.com/v3.1/name/aruba"),
             raw_body: String::new(),
-            method: RequestMethod::Delete,
+            method: RequestMethod::Get,
+            request_tab: 0,
+            selected_block: AppBlock::Endpoint,
+            response: None,
+            response_scroll: (0, 0),
         }
     }
 }
