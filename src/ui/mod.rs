@@ -7,13 +7,13 @@ use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
     style::{Color, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Tabs, Wrap},
     Frame,
 };
 
-use crate::app::{App, AppBlock, InputMode, RequestMethod};
+use crate::app::{App, AppBlock, InputMode, RequestMethod, RequestTab};
 
-use self::input::create_input;
+use self::input::{create_input, create_textarea};
 
 fn selectable_block(block: AppBlock, app: &App) -> Block {
     let is_selected = block == app.selected_block;
@@ -72,8 +72,8 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
         }))
         .alignment(Alignment::Center);
 
-    let raw_body_p = Paragraph::new(app.raw_body.as_str())
-        .block(selectable_block(AppBlock::Request, app).title("Body"));
+    let raw_body_input = create_textarea(&app.raw_body, app)
+        .block(selectable_block(AppBlock::RequestContent, app).title("Body"));
 
     let help_p = Paragraph::new("Press 'q' to quit").block(
         Block::default()
@@ -82,10 +82,36 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
             .title("Help"),
     );
 
+    let request_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(content_chunks[0]);
+
+    let request_tabs = vec![
+        Span::styled("Body", Style::default().fg(Color::White)),
+        Span::styled("Query", Style::default().fg(Color::White)),
+        Span::styled("Headers", Style::default().fg(Color::White)),
+        Span::styled("Auth", Style::default().fg(Color::White)),
+        Span::styled("Cookies", Style::default().fg(Color::White)),
+    ];
+
+    let tab = Tabs::new(request_tabs)
+        .block(selectable_block(AppBlock::Request, app))
+        .divider(Span::raw("|"))
+        .select(app.request_tab.clone().into())
+        .highlight_style(Style::default().fg(Color::Green));
+
     frame.render_widget(method_p, header_chunks[0]);
     frame.render_widget(endpoint_input, header_chunks[1]);
 
-    frame.render_widget(raw_body_p, content_chunks[0]);
+    frame.render_widget(tab, request_chunks[0]);
+
+    match app.request_tab {
+        RequestTab::Body => {
+            frame.render_widget(raw_body_input, request_chunks[1]);
+        }
+        _ => {}
+    }
 
     match app.response.as_ref() {
         Some(r) => {

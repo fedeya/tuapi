@@ -1,3 +1,5 @@
+use reqwest::header::HeaderMap;
+
 use crate::app::{App, RequestMethod, Response};
 
 pub fn handle_request(app: &mut App) {
@@ -9,7 +11,15 @@ pub fn handle_request(app: &mut App) {
     };
 
     let client = reqwest::blocking::Client::new();
-    let builder = client.request(method, &app.endpoint.text);
+
+    let mut headers = HeaderMap::new();
+
+    headers.append("Content-Type", "application/json".parse().unwrap());
+
+    let builder = client
+        .request(method, &app.endpoint.text)
+        .body(app.raw_body.text.clone())
+        .headers(headers);
 
     let response = builder.send().unwrap();
 

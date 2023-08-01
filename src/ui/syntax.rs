@@ -43,6 +43,36 @@ pub fn highlight_response(response: String) -> Vec<Line<'static>> {
     lines
 }
 
+pub fn highlight_body(body: &str) -> Vec<Line> {
+    let syntax = PS.find_syntax_by_extension("json").unwrap();
+    let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
+
+    let mut lines: Vec<Line> = Vec::new();
+
+    for line in LinesWithEndings::from(body) {
+        let ranges = h.highlight_line(line, &PS).unwrap();
+
+        let spans: Vec<Span> = ranges
+            .iter()
+            .map(|segment| {
+                let (style, content) = segment;
+
+                Span::styled(
+                    content.to_string(),
+                    Style {
+                        fg: translate_colour(style.foreground),
+                        ..Style::default()
+                    },
+                )
+            })
+            .collect();
+
+        lines.push(Line::from(spans));
+    }
+
+    lines
+}
+
 fn translate_colour(syntect_color: syntect::highlighting::Color) -> Option<Color> {
     match syntect_color {
         syntect::highlighting::Color { r, g, b, a } if a > 0 => Some(Color::Rgb(r, g, b)),
