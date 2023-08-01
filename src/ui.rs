@@ -73,7 +73,11 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                 Style::default().bg(Color::Green).fg(Color::Black),
             )
         } else {
-            Span::raw(&between_cursor.1[0..1])
+            if let Some(c) = between_cursor.1.get(0..1) {
+                Span::raw(c)
+            } else {
+                Span::raw(" ")
+            }
         },
         if let Some(c) = between_cursor.1.get(1..) {
             Span::raw(c)
