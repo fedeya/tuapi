@@ -73,8 +73,12 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     let raw_body_p = Paragraph::new(app.raw_body.as_str())
         .block(selectable_block(AppBlock::Request, app).title("Body"));
 
-    let help_p = Paragraph::new("Press 'q' to quit")
-        .block(Block::default().borders(Borders::ALL).title("Help"));
+    let help_p = Paragraph::new("Press 'q' to quit").block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::White))
+            .title("Help"),
+    );
 
     frame.render_widget(method_p, header_chunks[0]);
     frame.render_widget(endpoint_p, header_chunks[1]);
@@ -83,8 +87,12 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
     match app.response.as_ref() {
         Some(r) => {
-            let max_x =
-                u16::try_from(r.text.lines().count()).unwrap() - (content_chunks[1].height - 2);
+            let lines_count = u16::try_from(r.text.lines().count()).unwrap_or(1);
+            let max_x = if lines_count > content_chunks[1].height {
+                lines_count - (content_chunks[1].height - 2)
+            } else {
+                0
+            };
 
             app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
 

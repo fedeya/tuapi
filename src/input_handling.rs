@@ -56,7 +56,11 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                     let x = if app.response_scroll.0 == 0 {
                         0
                     } else {
-                        app.response_scroll.0 - 1
+                        if app.response_scroll.0 - 2 > 0 {
+                            app.response_scroll.0 - 2
+                        } else {
+                            0
+                        }
                     };
 
                     app.response_scroll.0 = x;

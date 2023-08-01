@@ -78,7 +78,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             input_mode: InputMode::Normal,
-            endpoint: String::from("https://restcountries.com/v3.1/name/aruba"),
+            endpoint: String::from("https://jsonplaceholder.typicode.com/users"),
             raw_body: String::new(),
             method: RequestMethod::Get,
             request_tab: 0,
