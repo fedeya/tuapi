@@ -61,6 +61,7 @@ pub struct Response {
 
 pub struct App {
     pub input_mode: InputMode,
+    pub input_cursor_position: u16,
 
     pub endpoint: String,
     pub method: RequestMethod,
@@ -82,6 +83,7 @@ impl Default for App {
             raw_body: String::new(),
             method: RequestMethod::Get,
             request_tab: 0,
+            input_cursor_position: 0,
             selected_block: AppBlock::Endpoint,
             response: None,
             response_scroll: (0, 0),

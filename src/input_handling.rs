@@ -9,7 +9,11 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
     match app.input_mode {
         InputMode::Normal => match key.code {
             KeyCode::Char('i') => match app.selected_block {
-                AppBlock::Endpoint | AppBlock::Request => {
+                AppBlock::Endpoint => {
+                    app.input_mode = InputMode::Insert;
+                    app.input_cursor_position = app.endpoint.len().try_into().unwrap()
+                }
+                AppBlock::Request => {
                     app.input_mode = InputMode::Insert;
                 }
                 _ => {}
@@ -76,13 +80,34 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
         InputMode::Insert => match key.code {
             KeyCode::Char(c) => match app.selected_block {
                 AppBlock::Endpoint => {
-                    app.endpoint.push(c);
+                    app.endpoint.insert(app.input_cursor_position.into(), c);
+                    app.input_cursor_position += 1;
                 }
                 AppBlock::Request => {
                     app.raw_body.push(c);
                 }
                 _ => {}
             },
+            KeyCode::Right => {
+                if let AppBlock::Endpoint = app.selected_block {
+                    let new_pos = app.input_cursor_position + 1;
+
+                    app.input_cursor_position =
+                        new_pos.clamp(0, app.endpoint.chars().count().try_into().unwrap());
+                }
+            }
+            KeyCode::Left => {
+                if let AppBlock::Endpoint = app.selected_block {
+                    let new_pos = if app.input_cursor_position == 0 {
+                        0
+                    } else {
+                        app.input_cursor_position - 1
+                    };
+
+                    app.input_cursor_position =
+                        new_pos.clamp(0, app.endpoint.chars().count().try_into().unwrap());
+                }
+            }
             KeyCode::Enter => match app.selected_block {
                 AppBlock::Request => {
                     app.raw_body.push('\n');
@@ -96,7 +121,12 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             },
             KeyCode::Backspace => match app.selected_block {
                 AppBlock::Endpoint => {
-                    app.endpoint.pop();
+                    let removable = app.input_cursor_position != 0;
+
+                    if removable {
+                        app.endpoint.remove(app.input_cursor_position as usize - 1);
+                        app.input_cursor_position -= 1;
+                    }
                 }
                 AppBlock::Request => {
                     app.raw_body.pop();

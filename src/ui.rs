@@ -4,7 +4,7 @@ use std::io::Stdout;
 
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Style, Modifier},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
@@ -59,7 +59,30 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(main_chunks[1]);
 
-    let endpoint_p = Paragraph::new(app.endpoint.as_str())
+    let between_cursor = app.endpoint.split_at(app.input_cursor_position.into());
+
+    let endpoint_line = Line::from(vec![
+        Span::raw(between_cursor.0),
+        if app.input_mode == InputMode::Insert {
+            Span::styled(
+                if let Some(c) = between_cursor.1.get(0..1) {
+                    c
+                } else {
+                    " "
+                },
+                Style::default().bg(Color::Green).fg(Color::Black),
+            )
+        } else {
+            Span::raw(&between_cursor.1[0..1])
+        },
+        if let Some(c) = between_cursor.1.get(1..) {
+            Span::raw(c)
+        } else {
+            Span::raw("")
+        },
+    ]);
+
+    let endpoint_p = Paragraph::new(endpoint_line)
         .block(selectable_block(AppBlock::Endpoint, app).title("Endpoint"));
 
     let method_p = Paragraph::new(app.method.to_string())
