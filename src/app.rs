@@ -59,11 +59,24 @@ pub struct Response {
     pub text: String,
 }
 
+pub struct Input {
+    pub text: String,
+    pub cursor_position: u16,
+}
+
+impl Default for Input {
+    fn default() -> Self {
+        Self {
+            text: String::new(),
+            cursor_position: 0,
+        }
+    }
+}
+
 pub struct App {
     pub input_mode: InputMode,
-    pub input_cursor_position: u16,
 
-    pub endpoint: String,
+    pub endpoint: Input,
     pub method: RequestMethod,
 
     pub raw_body: String,
@@ -79,11 +92,13 @@ impl Default for App {
     fn default() -> Self {
         Self {
             input_mode: InputMode::Normal,
-            endpoint: String::from("https://jsonplaceholder.typicode.com/users"),
+            endpoint: Input {
+                text: String::from("https://jsonplaceholder.typicode.com/users"),
+                ..Input::default()
+            },
             raw_body: String::new(),
             method: RequestMethod::Get,
             request_tab: 0,
-            input_cursor_position: 0,
             selected_block: AppBlock::Endpoint,
             response: None,
             response_scroll: (0, 0),

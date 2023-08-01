@@ -1,19 +1,19 @@
-use cached::proc_macro::cached;
-use once_cell::sync::Lazy;
+mod input;
+mod syntax;
+
 use std::io::Stdout;
 
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
-use syntect::{
-    easy::HighlightLines, highlighting::ThemeSet, parsing::SyntaxSet, util::LinesWithEndings,
-};
 
 use crate::app::{App, AppBlock, InputMode, RequestMethod};
+
+use self::input::create_input;
 
 fn selectable_block(block: AppBlock, app: &App) -> Block {
     let is_selected = block == app.selected_block;
@@ -59,30 +59,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(main_chunks[1]);
 
-    let between_cursor = app.endpoint.split_at(app.input_cursor_position.into());
-
-    let endpoint_line = Line::from(vec![
-        Span::raw(between_cursor.0),
-        match app.input_mode {
-            InputMode::Insert => Span::styled(
-                match between_cursor.1.get(0..1) {
-                    Some(c) => c,
-                    None => " ",
-                },
-                Style::default().bg(Color::Green).fg(Color::Black),
-            ),
-            InputMode::Normal => Span::raw(match between_cursor.1.get(0..1) {
-                Some(c) => c,
-                None => " ",
-            }),
-        },
-        match between_cursor.1.get(1..) {
-            Some(c) => Span::raw(c),
-            None => Span::raw(""),
-        },
-    ]);
-
-    let endpoint_p = Paragraph::new(endpoint_line)
+    let endpoint_input = create_input(&app.endpoint, app)
         .block(selectable_block(AppBlock::Endpoint, app).title("Endpoint"));
 
     let method_p = Paragraph::new(app.method.to_string())
@@ -106,7 +83,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     );
 
     frame.render_widget(method_p, header_chunks[0]);
-    frame.render_widget(endpoint_p, header_chunks[1]);
+    frame.render_widget(endpoint_input, header_chunks[1]);
 
     frame.render_widget(raw_body_p, content_chunks[0]);
 
@@ -121,7 +98,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
 
-            let lines = highlight_response(r.text.clone());
+            let lines = syntax::highlight_response(r.text.clone());
 
             let response_p = Paragraph::new(lines)
                 .block(selectable_block(AppBlock::Response, app).title("Response"))
@@ -140,46 +117,4 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     }
 
     frame.render_widget(help_p, main_chunks[2]);
-}
-
-static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
-
-#[cached]
-fn highlight_response(response: String) -> Vec<Line<'static>> {
-    let syntax = PS.find_syntax_by_extension("json").unwrap();
-    let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
-
-    let mut lines: Vec<Line> = Vec::new();
-
-    for line in LinesWithEndings::from(response.as_str()) {
-        let ranges: Vec<(syntect::highlighting::Style, &str)> =
-            h.highlight_line(line, &PS).unwrap();
-
-        let spans: Vec<Span> = ranges
-            .iter()
-            .map(|segment| {
-                let (style, content) = segment;
-
-                Span::styled(
-                    content.to_string(),
-                    Style {
-                        fg: translate_colour(style.foreground),
-                        ..Style::default()
-                    },
-                )
-            })
-            .collect();
-
-        lines.push(Line::from(spans));
-    }
-
-    lines
-}
-
-fn translate_colour(syntect_color: syntect::highlighting::Color) -> Option<Color> {
-    match syntect_color {
-        syntect::highlighting::Color { r, g, b, a } if a > 0 => Some(Color::Rgb(r, g, b)),
-        _ => None,
-    }
 }

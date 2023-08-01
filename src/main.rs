@@ -1,11 +1,11 @@
 mod app;
-mod input_handling;
+mod event;
 mod request;
 mod ui;
 
 use app::{App, InputMode};
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self as crossterm_event, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -49,12 +49,12 @@ fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Resu
     loop {
         terminal.draw(|frame| ui::draw(frame, app))?;
 
-        if let Event::Key(key) = event::read()? {
+        if let Event::Key(key) = crossterm_event::read()? {
             if app.input_mode == InputMode::Normal && key.code == KeyCode::Char('q') {
                 return Ok(());
             }
 
-            input_handling::handle_input(app, key);
+            event::handle_input(app, key);
         }
     }
 }

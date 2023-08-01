@@ -9,7 +9,7 @@ pub fn handle_request(app: &mut App) {
     };
 
     let client = reqwest::blocking::Client::new();
-    let builder = client.request(method, &app.endpoint);
+    let builder = client.request(method, &app.endpoint.text);
 
     let response = builder.send().unwrap();
 

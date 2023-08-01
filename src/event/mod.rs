@@ -1,3 +1,6 @@
+mod input;
+mod navigation;
+
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
@@ -11,7 +14,7 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::Char('i') => match app.selected_block {
                 AppBlock::Endpoint => {
                     app.input_mode = InputMode::Insert;
-                    app.input_cursor_position = app.endpoint.len().try_into().unwrap()
+                    input::move_cursor_to_end_of_line(&mut app.endpoint);
                 }
                 AppBlock::Request => {
                     app.input_mode = InputMode::Insert;
@@ -28,60 +31,27 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                 }
             }
             KeyCode::Tab => {
-                let mut selected_block: u16 = app.selected_block.clone().into();
-
-                selected_block += 1;
-
-                if selected_block > 4 {
-                    selected_block = 1;
-                }
-
-                app.selected_block = selected_block.into();
+                navigation::move_to_next_block(app);
             }
             KeyCode::BackTab => {
-                let mut selected_block: u16 = app.selected_block.clone().into();
-
-                selected_block -= 1;
-
-                if selected_block == 0 {
-                    selected_block = 4;
-                }
-
-                app.selected_block = selected_block.into();
+                navigation::move_to_previous_block(app);
             }
             KeyCode::Enter => {
                 request::handle_request(app);
             }
 
             KeyCode::Char('j') => {
-                if let AppBlock::Response = app.selected_block {
-                    let x = app.response_scroll.0 + 2;
-
-                    app.response_scroll.0 = x;
-                }
+                navigation::scroll_up_response(app);
             }
             KeyCode::Char('k') => {
-                if let AppBlock::Response = app.selected_block {
-                    let x = if app.response_scroll.0 == 0 {
-                        0
-                    } else {
-                        if app.response_scroll.0 - 2 > 0 {
-                            app.response_scroll.0 - 2
-                        } else {
-                            0
-                        }
-                    };
-
-                    app.response_scroll.0 = x;
-                }
+                navigation::scroll_down_response(app);
             }
             _ => {}
         },
         InputMode::Insert => match key.code {
             KeyCode::Char(c) => match app.selected_block {
                 AppBlock::Endpoint => {
-                    app.endpoint.insert(app.input_cursor_position.into(), c);
-                    app.input_cursor_position += 1;
+                    input::add_char_at_cursor(&mut app.endpoint, c);
                 }
                 AppBlock::Request => {
                     app.raw_body.push(c);
@@ -90,22 +60,12 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             },
             KeyCode::Right => {
                 if let AppBlock::Endpoint = app.selected_block {
-                    let new_pos = app.input_cursor_position + 1;
-
-                    app.input_cursor_position =
-                        new_pos.clamp(0, app.endpoint.chars().count().try_into().unwrap());
+                    input::move_cursor_right(&mut app.endpoint);
                 }
             }
             KeyCode::Left => {
                 if let AppBlock::Endpoint = app.selected_block {
-                    let new_pos = if app.input_cursor_position == 0 {
-                        0
-                    } else {
-                        app.input_cursor_position - 1
-                    };
-
-                    app.input_cursor_position =
-                        new_pos.clamp(0, app.endpoint.chars().count().try_into().unwrap());
+                    input::move_cursor_left(&mut app.endpoint);
                 }
             }
             KeyCode::Enter => match app.selected_block {
@@ -121,12 +81,7 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             },
             KeyCode::Backspace => match app.selected_block {
                 AppBlock::Endpoint => {
-                    let removable = app.input_cursor_position != 0;
-
-                    if removable {
-                        app.endpoint.remove(app.input_cursor_position as usize - 1);
-                        app.input_cursor_position -= 1;
-                    }
+                    input::remove_char_before_cursor(&mut app.endpoint);
                 }
                 AppBlock::Request => {
                     app.raw_body.pop();
