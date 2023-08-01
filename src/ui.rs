@@ -3,8 +3,12 @@ use std::io::Stdout;
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
     style::{Color, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
+};
+use syntect::{
+    easy::HighlightLines, highlighting::ThemeSet, parsing::SyntaxSet, util::LinesWithEndings,
 };
 
 use crate::app::{App, AppBlock, InputMode, RequestMethod};
@@ -84,9 +88,11 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
 
-            let response_p = Paragraph::new(r.text.clone())
+            let lines = highlight_response(r.text.as_str());
+
+            let response_p = Paragraph::new(lines)
                 .block(selectable_block(AppBlock::Response, app).title("Response"))
-                .wrap(Wrap { trim: false, })
+                .wrap(Wrap { trim: false })
                 .scroll(app.response_scroll);
 
             frame.render_widget(response_p, content_chunks[1]);
@@ -101,4 +107,45 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     }
 
     frame.render_widget(help_p, main_chunks[2]);
+}
+
+fn highlight_response(response: &str) -> Vec<Line> {
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+
+    let syntax = ps.find_syntax_by_extension("json").unwrap();
+    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+
+    let mut lines: Vec<Line> = Vec::new();
+
+    for line in LinesWithEndings::from(response) {
+        let ranges: Vec<(syntect::highlighting::Style, &str)> =
+            h.highlight_line(line, &ps).unwrap();
+
+        let spans: Vec<Span> = ranges
+            .iter()
+            .map(|segment| {
+                let (style, content) = segment;
+
+                Span::styled(
+                    content.to_string(),
+                    Style {
+                        fg: translate_colour(style.foreground),
+                        ..Style::default()
+                    },
+                )
+            })
+            .collect();
+
+        lines.push(Line::from(spans));
+    }
+
+    lines
+}
+
+fn translate_colour(syntect_color: syntect::highlighting::Color) -> Option<Color> {
+    match syntect_color {
+        syntect::highlighting::Color { r, g, b, a } if a > 0 => Some(Color::Rgb(r, g, b)),
+        _ => None,
+    }
 }

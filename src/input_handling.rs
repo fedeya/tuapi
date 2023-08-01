@@ -1,6 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::app::{App, AppBlock, InputMode, RequestMethod, Response};
+use crate::{
+    app::{App, AppBlock, InputMode},
+    request,
+};
 
 pub fn handle_input(app: &mut App, key: KeyEvent) {
     match app.input_mode {
@@ -38,26 +41,7 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                 app.selected_block = selected_block.into();
             }
             KeyCode::Enter => {
-                let method = match app.method {
-                    RequestMethod::Get => reqwest::Method::GET,
-                    RequestMethod::Post => reqwest::Method::POST,
-                    RequestMethod::Put => reqwest::Method::PUT,
-                    RequestMethod::Delete => reqwest::Method::DELETE,
-                };
-
-                let client = reqwest::blocking::Client::new();
-                let builder = client.request(method, &app.endpoint);
-
-                let response = builder.send().unwrap();
-
-                let status_code = response.status().as_u16();
-
-                let data = response.json::<serde_json::Value>().unwrap();
-
-                app.response = Some(Response {
-                    status_code,
-                    text: format!("{:#}\n", data),
-                });
+                request::handle_request(app);
             }
 
             KeyCode::Char('j') => {

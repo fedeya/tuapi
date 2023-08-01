@@ -1,5 +1,6 @@
 mod app;
 mod input_handling;
+mod request;
 mod ui;
 
 use app::{App, InputMode};
@@ -10,9 +11,13 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::{self, Error, Stdout};
+use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 
 fn main() -> Result<(), Error> {
     let mut terminal = setup_terminal()?;
+
+    SyntaxSet::load_defaults_newlines();
+    ThemeSet::load_defaults();
 
     let mut app = App::default();
 
