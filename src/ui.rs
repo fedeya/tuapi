@@ -4,7 +4,7 @@ use std::io::Stdout;
 
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
-    style::{Color, Style, Modifier},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
@@ -63,26 +63,22 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
     let endpoint_line = Line::from(vec![
         Span::raw(between_cursor.0),
-        if app.input_mode == InputMode::Insert {
-            Span::styled(
-                if let Some(c) = between_cursor.1.get(0..1) {
-                    c
-                } else {
-                    " "
+        match app.input_mode {
+            InputMode::Insert => Span::styled(
+                match between_cursor.1.get(0..1) {
+                    Some(c) => c,
+                    None => " ",
                 },
                 Style::default().bg(Color::Green).fg(Color::Black),
-            )
-        } else {
-            if let Some(c) = between_cursor.1.get(0..1) {
-                Span::raw(c)
-            } else {
-                Span::raw(" ")
-            }
+            ),
+            InputMode::Normal => Span::raw(match between_cursor.1.get(0..1) {
+                Some(c) => c,
+                None => " ",
+            }),
         },
-        if let Some(c) = between_cursor.1.get(1..) {
-            Span::raw(c)
-        } else {
-            Span::raw("")
+        match between_cursor.1.get(1..) {
+            Some(c) => Span::raw(c),
+            None => Span::raw(""),
         },
     ]);
 
