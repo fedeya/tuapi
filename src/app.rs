@@ -143,12 +143,12 @@ impl Default for App {
     fn default() -> Self {
         let mut headers = HashMap::new();
 
-        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        headers.insert("content-type".to_string(), "application/json".to_string());
 
         Self {
             input_mode: InputMode::Normal,
             endpoint: Input {
-                text: String::from(""),
+                text: String::from("https://fakestoreapi.com/products"),
                 ..Input::default()
             },
             headers,

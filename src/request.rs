@@ -23,10 +23,11 @@ pub fn handle_request(app: &mut App) {
 
     let client = reqwest::blocking::Client::new();
 
-    let builder = client
-        .request(method, &app.endpoint.text)
-        .body(app.raw_body.text.clone())
-        .headers(headers);
+    let mut builder = client.request(method, &app.endpoint.text).headers(headers);
+
+    if !app.raw_body.text.trim().is_empty() {
+        builder = builder.body(app.raw_body.text.clone());
+    }
 
     let response = builder.send().unwrap();
 
@@ -36,8 +37,8 @@ pub fn handle_request(app: &mut App) {
 
     let text: String;
 
-    match content_type.to_str().unwrap() {
-        "application/json" => {
+    match content_type.to_str().unwrap().to_lowercase() {
+        h if h.contains("application/json") => {
             let data = response.json::<serde_json::Value>().unwrap();
 
             text = format!("{:#}\n", data);
