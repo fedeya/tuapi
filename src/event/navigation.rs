@@ -61,7 +61,7 @@ pub fn scroll_up_response(app: &mut App) {
         let x = if app.response_scroll.0 == 0 {
             0
         } else {
-            if app.response_scroll.0 - 2 > 0 {
+            if app.response_scroll.0 > 2 {
                 app.response_scroll.0 - 2
             } else {
                 0

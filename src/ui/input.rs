@@ -4,7 +4,7 @@ use ratatui::{
     widgets::Paragraph,
 };
 
-use crate::app::{App, Input, InputMode};
+use crate::app::{App, AppBlock, Input, InputMode};
 
 pub fn create_input<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
     let (left, right) = input.text.split_at(input.cursor_position.x.into());
@@ -17,8 +17,10 @@ pub fn create_input<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
                 None => " ",
             },
             match app.input_mode {
-                InputMode::Insert => Style::default().bg(Color::Green).fg(Color::Black),
-                InputMode::Normal => Style::default(),
+                InputMode::Insert if app.selected_block == AppBlock::Endpoint => {
+                    Style::default().bg(Color::Green).fg(Color::Black)
+                }
+                _ => Style::default(),
             },
         ),
         match right.get(1..) {
@@ -52,8 +54,10 @@ pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
                         None => " ",
                     },
                     match app.input_mode {
-                        InputMode::Insert => Style::default().bg(Color::Green).fg(Color::Black),
-                        InputMode::Normal => Style::default(),
+                        InputMode::Insert if app.selected_block == AppBlock::RequestContent => {
+                            Style::default().bg(Color::Green).fg(Color::Black)
+                        }
+                        _ => Style::default(),
                     },
                 ),
                 match right.get(1..) {
