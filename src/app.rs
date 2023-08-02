@@ -148,7 +148,7 @@ impl Default for App {
         Self {
             input_mode: InputMode::Normal,
             endpoint: Input {
-                text: String::from("https://jsonplaceholder.typicode.com/users"),
+                text: String::from(""),
                 ..Input::default()
             },
             headers,
