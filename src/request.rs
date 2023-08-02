@@ -1,4 +1,6 @@
-use reqwest::header::HeaderMap;
+use std::str::FromStr;
+
+use reqwest::header::{HeaderMap, HeaderName};
 
 use crate::app::{App, RequestMethod, Response};
 
@@ -10,11 +12,16 @@ pub fn handle_request(app: &mut App) {
         RequestMethod::Delete => reqwest::Method::DELETE,
     };
 
-    let client = reqwest::blocking::Client::new();
-
     let mut headers = HeaderMap::new();
 
-    headers.append("Content-Type", "application/json".parse().unwrap());
+    app.headers.iter().for_each(|(key, value)| {
+        headers.insert(
+            HeaderName::from_str(key.as_str()).unwrap(),
+            value.parse().unwrap(),
+        );
+    });
+
+    let client = reqwest::blocking::Client::new();
 
     let builder = client
         .request(method, &app.endpoint.text)

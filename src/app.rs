@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(PartialEq)]
 pub enum InputMode {
     Normal,
@@ -133,17 +135,23 @@ pub struct App {
     pub selected_block: AppBlock,
 
     pub response: Option<Response>,
+    pub headers: HashMap<String, String>,
     pub response_scroll: (u16, u16),
 }
 
 impl Default for App {
     fn default() -> Self {
+        let mut headers = HashMap::new();
+
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+
         Self {
             input_mode: InputMode::Normal,
             endpoint: Input {
                 text: String::from("https://jsonplaceholder.typicode.com/users"),
                 ..Input::default()
             },
+            headers,
             raw_body: Input::default(),
             method: RequestMethod::Get,
             request_tab: RequestTab::Body,
