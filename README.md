@@ -12,3 +12,9 @@ WIP
 
 WIP
 
+## Build from source
+
+```sh
+cargo install --git https://github.com/fedeya/tuapi
+```
+
