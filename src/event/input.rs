@@ -78,7 +78,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
 
             if is_cursor_in_next_line && input.cursor_position.x == 0 {
                 removed_line = true;
-                return String::from(line);
+                return String::from(line).trim_end().to_string();
             }
 
             if !is_cursor_in_line || (input.cursor_position.x == 0 && index == 0) {
@@ -86,7 +86,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
             }
 
             if input.cursor_position.x == 0 {
-                return String::from(line).trim_start().to_string();
+                return String::from(line).trim_end().to_string();
             }
 
             let mut new_line = String::from(line);

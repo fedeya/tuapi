@@ -27,16 +27,21 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::BackTab => {
                 navigation::move_to_previous_block(app);
             }
-            KeyCode::Enter => {
-                request::handle_request(app);
-            }
+            KeyCode::Enter => match app.selected_block {
+                AppBlock::Request => {
+                    app.selected_block = AppBlock::RequestContent;
+                }
+                _ => {
+                    request::handle_request(app);
+                }
+            },
 
             KeyCode::Char('j') => match app.selected_block {
                 AppBlock::Response => {
-                    navigation::scroll_up_response(app);
+                    navigation::scroll_down_response(app);
                 }
                 AppBlock::Request => {
-                    navigation::move_next_request_tab(app);
+                    navigation::move_to_previous_request_tab(app);
                 }
                 AppBlock::Method => {
                     app.method = RequestMethod::Get;
@@ -45,10 +50,10 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             },
             KeyCode::Char('k') => match app.selected_block {
                 AppBlock::Response => {
-                    navigation::scroll_down_response(app);
+                    navigation::scroll_up_response(app);
                 }
                 AppBlock::Request => {
-                    navigation::move_to_previous_request_tab(app);
+                    navigation::move_next_request_tab(app);
                 }
                 AppBlock::Method => {
                     app.method = RequestMethod::Post;
