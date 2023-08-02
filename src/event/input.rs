@@ -41,7 +41,14 @@ pub fn move_cursor_to_start_of_line(input: &mut Input) {
 }
 
 pub fn move_cursor_to_end_of_line(input: &mut Input) {
-    input.cursor_position.x = input.text.len().try_into().unwrap();
+    let (_, text) = input
+        .text
+        .lines()
+        .enumerate()
+        .find(|(index, _)| *index == usize::from(input.cursor_position.y))
+        .unwrap_or((0, input.text.as_str()));
+
+    input.cursor_position.x = text.len().try_into().unwrap();
 }
 
 pub fn remove_char_before_cursor(input: &mut Input) {
@@ -78,7 +85,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
 
             if is_cursor_in_next_line && input.cursor_position.x == 0 {
                 removed_line = true;
-                return String::from(line).trim_end().to_string();
+                return String::from(line);
             }
 
             if !is_cursor_in_line || (input.cursor_position.x == 0 && index == 0) {
@@ -86,7 +93,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
             }
 
             if input.cursor_position.x == 0 {
-                return String::from(line).trim_end().to_string();
+                return format!("{line}\n");
             }
 
             let mut new_line = String::from(line);
@@ -102,6 +109,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
 
     if removed_line {
         move_cursor_up(input);
+        move_cursor_to_end_of_line(input);
     }
 
     move_cursor_left(input)
@@ -148,7 +156,6 @@ fn add_char_at_cursor_multi_line(input: &mut Input, c: char) {
 
 pub fn add_newline_at_cursor(input: &mut Input) {
     add_char_at_cursor(input, '\n');
-    add_char_at_cursor(input, ' ');
 
     move_cursor_to_start_of_line(input);
     move_cursor_down(input);

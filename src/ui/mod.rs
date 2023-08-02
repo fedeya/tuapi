@@ -36,6 +36,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Length(0), Constraint::Min(0)])
+        .horizontal_margin(1)
         .split(frame.size());
 
     let main_chunks = Layout::default()
@@ -157,11 +158,11 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
             frame.render_widget(status_code_p, response_chunks[1]);
         }
         None => {
-            let helper_text = Paragraph::new("Press <Enter> to send request")
+            let helper_text = Paragraph::new("Created with love by @fedeya")
                 .alignment(Alignment::Center)
                 .block(selectable_block(AppBlock::Response, app).title("Response"));
 
-            let status_blank = Paragraph::new("Make a request to see response")
+            let status_blank = Paragraph::new("Press <Enter> to send request")
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
