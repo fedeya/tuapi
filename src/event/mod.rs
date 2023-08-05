@@ -113,6 +113,12 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                 }
                 _ => {}
             },
+            KeyCode::Tab => {
+                if let AppBlock::RequestContent = app.selected_block {
+                    input::add_char_at_cursor(&mut app.raw_body, ' ');
+                    input::add_char_at_cursor(&mut app.raw_body, ' ');
+                }
+            }
             KeyCode::Backspace => match app.selected_block {
                 AppBlock::Endpoint => {
                     input::remove_char_before_cursor(&mut app.endpoint);

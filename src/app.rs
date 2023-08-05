@@ -152,7 +152,10 @@ impl Default for App {
                 ..Input::default()
             },
             headers,
-            raw_body: Input::default(),
+            raw_body: Input {
+                text: String::from("{\n\"name\": \"test\"\n}"),
+                ..Input::default()
+            },
             method: RequestMethod::Get,
             request_tab: RequestTab::Body,
             selected_block: AppBlock::Endpoint,

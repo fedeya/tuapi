@@ -8,8 +8,8 @@ use syntect::{
     easy::HighlightLines, highlighting::ThemeSet, parsing::SyntaxSet, util::LinesWithEndings,
 };
 
-static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
+pub static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
+pub static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[cached]
 pub fn highlight_response(response: String) -> Vec<Line<'static>> {
@@ -73,7 +73,7 @@ pub fn highlight_body(body: &str) -> Vec<Line> {
     lines
 }
 
-fn translate_colour(syntect_color: syntect::highlighting::Color) -> Option<Color> {
+pub fn translate_colour(syntect_color: syntect::highlighting::Color) -> Option<Color> {
     match syntect_color {
         syntect::highlighting::Color { r, g, b, a } if a > 0 => Some(Color::Rgb(r, g, b)),
         _ => None,
