@@ -122,6 +122,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     match app.response.as_ref() {
         Some(r) => {
             let lines_count = u16::try_from(r.text.lines().count()).unwrap_or(1);
+
             let max_x = if lines_count > response_chunks[0].height {
                 lines_count - (response_chunks[0].height - 2)
             } else {
@@ -134,7 +135,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             let response_p = Paragraph::new(lines)
                 .block(selectable_block(AppBlock::Response, app).title("Response"))
-                .wrap(Wrap { trim: false })
+                // .wrap(Wrap { trim: false })
                 .scroll(app.response_scroll);
 
             let status_code_style = Style::default().fg(match r.status_code {
