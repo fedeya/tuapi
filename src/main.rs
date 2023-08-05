@@ -11,19 +11,22 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::{self, Error, Stdout};
-use syntect::{highlighting::ThemeSet, parsing::SyntaxSet};
 
 fn main() -> Result<(), Error> {
     let mut terminal = setup_terminal()?;
 
-    SyntaxSet::load_defaults_newlines();
-    ThemeSet::load_defaults();
-
     let mut app = App::default();
+
+    let original_hook = std::panic::take_hook();
+
+    std::panic::set_hook(Box::new(move |panic| {
+        restore_terminal().unwrap();
+        original_hook(panic);
+    }));
 
     let res = run(&mut terminal, &mut app);
 
-    restore_terminal(&mut terminal)?;
+    restore_terminal()?;
 
     if let Err(err) = res {
         println!("{}", err);
@@ -39,10 +42,10 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Error> {
     Ok(Terminal::new(CrosstermBackend::new(stdout))?)
 }
 
-fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), Error> {
+fn restore_terminal() -> Result<(), Error> {
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
-    Ok(terminal.show_cursor()?)
+    execute!(io::stdout(), LeaveAlternateScreen)?;
+    Ok(())
 }
 
 fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> io::Result<()> {
