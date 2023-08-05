@@ -7,7 +7,7 @@ use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout, Rect},
     style::{Color, Style},
     text::Span,
-    widgets::{Block, Borders, Clear, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Tabs},
     Frame,
 };
 
@@ -145,7 +145,13 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                 _ => Color::White,
             });
 
-            let status_code_p = Paragraph::new(r.status_code.to_string())
+            let status_code_text = if app.is_loading {
+                "Loading...".to_string()
+            } else {
+                r.status_code.to_string()
+            };
+
+            let status_code_p = Paragraph::new(status_code_text)
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
@@ -162,13 +168,17 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                 .alignment(Alignment::Center)
                 .block(selectable_block(AppBlock::Response, app).title("Response"));
 
-            let status_blank = Paragraph::new("Press <Enter> to send request")
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(Style::default().fg(Color::White)),
-                )
-                .alignment(Alignment::Center);
+            let status_blank = Paragraph::new(if app.is_loading {
+                "Loading..."
+            } else {
+                "Press <Enter> to send request"
+            })
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::White)),
+            )
+            .alignment(Alignment::Center);
 
             frame.render_widget(helper_text, response_chunks[0]);
             frame.render_widget(status_blank, response_chunks[1]);
