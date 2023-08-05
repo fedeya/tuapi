@@ -5,7 +5,7 @@ mod ui;
 
 use app::{App, InputMode};
 use crossterm::{
-    event::{self as crossterm_event, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self as crossterm_event, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -21,9 +21,13 @@ fn main() -> Result<(), Error> {
 
     let mut app = App::default();
 
-    run(&mut terminal, &mut app)?;
+    let res = run(&mut terminal, &mut app);
 
     restore_terminal(&mut terminal)?;
+
+    if let Err(err) = res {
+        println!("{}", err);
+    }
 
     Ok(())
 }
@@ -41,13 +45,24 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
     Ok(terminal.show_cursor()?)
 }
 
-fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> Result<(), Error> {
+fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| ui::draw(frame, app))?;
 
         if let Event::Key(key) = crossterm_event::read()? {
-            if app.input_mode == InputMode::Normal && key.code == KeyCode::Char('q') {
-                return Ok(());
+            match app.input_mode {
+                InputMode::Normal => match key.code {
+                    KeyCode::Char('q') => match app.popup {
+                        Some(_) => {
+                            app.popup = None;
+                        }
+                        None => {
+                            return Ok(());
+                        }
+                    },
+                    _ => {}
+                },
+                _ => {}
             }
 
             event::handle_input(app, key);

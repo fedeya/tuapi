@@ -4,14 +4,14 @@ mod syntax;
 use std::io::Stdout;
 
 use ratatui::{
-    prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
+    prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout, Rect},
     style::{Color, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Tabs, Wrap},
+    text::Span,
+    widgets::{Block, Borders, Clear, Paragraph, Tabs, Wrap},
     Frame,
 };
 
-use crate::app::{App, AppBlock, InputMode, RequestMethod, RequestTab};
+use crate::app::{App, AppBlock, AppPopup, InputMode, RequestMethod, RequestTab};
 
 use self::input::{create_input, create_textarea};
 
@@ -122,7 +122,6 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     match app.response.as_ref() {
         Some(r) => {
             let lines_count = u16::try_from(r.text.lines().count()).unwrap_or(1);
-
             let max_x = if lines_count > response_chunks[0].height {
                 lines_count - (response_chunks[0].height - 2)
             } else {
@@ -177,4 +176,45 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     }
 
     frame.render_widget(help_p, main_chunks[2]);
+
+    match app.popup.as_ref() {
+        Some(AppPopup::ChangeMethod) => {
+            let block = Block::default()
+                .title("Select method")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::White));
+
+            let area = centered_rect(60, 20, frame.size());
+
+            frame.render_widget(Clear, area);
+            frame.render_widget(block, area);
+        }
+        None => {}
+    }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }

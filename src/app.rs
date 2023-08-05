@@ -123,6 +123,10 @@ impl Default for Input {
     }
 }
 
+pub enum AppPopup {
+    ChangeMethod,
+}
+
 pub struct App {
     pub input_mode: InputMode,
 
@@ -137,6 +141,8 @@ pub struct App {
     pub response: Option<Response>,
     pub headers: HashMap<String, String>,
     pub response_scroll: (u16, u16),
+
+    pub popup: Option<AppPopup>,
 }
 
 impl Default for App {
@@ -158,6 +164,7 @@ impl Default for App {
             selected_block: AppBlock::Endpoint,
             response: None,
             response_scroll: (0, 0),
+            popup: None,
         }
     }
 }

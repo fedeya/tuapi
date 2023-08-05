@@ -4,7 +4,7 @@ mod navigation;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
-    app::{App, AppBlock, InputMode, RequestMethod},
+    app::{App, AppBlock, AppPopup, InputMode, RequestMethod},
     request,
 };
 
@@ -30,6 +30,9 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::Enter => match app.selected_block {
                 AppBlock::Request => {
                     app.selected_block = AppBlock::RequestContent;
+                }
+                AppBlock::Method => {
+                    app.popup = Some(AppPopup::ChangeMethod);
                 }
                 _ => {
                     request::handle_request(app);
