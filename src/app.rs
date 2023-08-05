@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use tokio::sync::mpsc::{channel, Receiver, Sender};
+
+use crate::request;
+
 #[derive(PartialEq)]
 pub enum InputMode {
     Normal,
@@ -93,6 +97,7 @@ impl Into<AppBlock> for u16 {
     }
 }
 
+#[derive(Debug)]
 pub struct Response {
     pub status_code: u16,
     pub text: String,
@@ -127,6 +132,24 @@ pub enum AppPopup {
     ChangeMethod,
 }
 
+pub struct Request {
+    pub method: RequestMethod,
+    pub endpoint: String,
+    pub headers: HashMap<String, String>,
+    pub body: String,
+}
+
+impl Request {
+    pub fn from_app(app: &App) -> Self {
+        Self {
+            method: app.method.clone(),
+            endpoint: app.endpoint.text.clone(),
+            headers: app.headers.clone(),
+            body: app.raw_body.text.clone(),
+        }
+    }
+}
+
 pub struct App {
     pub input_mode: InputMode,
 
@@ -139,10 +162,25 @@ pub struct App {
     pub selected_block: AppBlock,
 
     pub response: Option<Response>,
+
+    pub res_rx: Receiver<Option<Response>>,
+    pub req_tx: Sender<Request>,
+    pub is_loading: bool,
+
     pub headers: HashMap<String, String>,
     pub response_scroll: (u16, u16),
 
     pub popup: Option<AppPopup>,
+}
+
+fn handle_requests(mut req_rx: Receiver<Request>, res_tx: Sender<Option<Response>>) {
+    tokio::spawn(async move {
+        while let Some(req) = req_rx.recv().await {
+            let res = request::handle_request(req).await;
+
+            res_tx.send(Some(res)).await.unwrap();
+        }
+    });
 }
 
 impl Default for App {
@@ -151,13 +189,21 @@ impl Default for App {
 
         headers.insert("content-type".to_string(), "application/json".to_string());
 
+        let (res_tx, res_rx) = channel(1);
+        let (req_tx, req_rx) = channel(1);
+
+        handle_requests(req_rx, res_tx);
+
         Self {
             input_mode: InputMode::Normal,
             endpoint: Input {
                 text: String::from("https://fakestoreapi.com/products"),
                 ..Input::default()
             },
+            is_loading: false,
             headers,
+            res_rx,
+            req_tx,
             raw_body: Input::default(),
             method: RequestMethod::Get,
             request_tab: RequestTab::Body,

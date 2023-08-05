@@ -10,9 +10,13 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::io::{self, Error, Stdout};
+use std::{
+    io::{self, Error, Stdout},
+    time::Duration,
+};
 
-fn main() -> Result<(), Error> {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
     let mut terminal = setup_terminal()?;
 
     let mut app = App::default();
@@ -24,7 +28,7 @@ fn main() -> Result<(), Error> {
         original_hook(panic);
     }));
 
-    let res = run(&mut terminal, &mut app);
+    let res = run(&mut terminal, &mut app).await;
 
     restore_terminal()?;
 
@@ -48,27 +52,34 @@ fn restore_terminal() -> Result<(), Error> {
     Ok(())
 }
 
-fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> io::Result<()> {
+async fn run(terminal: &mut Terminal<CrosstermBackend<Stdout>>, app: &mut App) -> io::Result<()> {
     loop {
         terminal.draw(|frame| ui::draw(frame, app))?;
 
-        if let Event::Key(key) = crossterm_event::read()? {
-            match app.input_mode {
-                InputMode::Normal => match key.code {
-                    KeyCode::Char('q') => match app.popup {
-                        Some(_) => {
-                            app.popup = None;
-                        }
-                        None => {
-                            return Ok(());
-                        }
+        if let Ok(res) = app.res_rx.try_recv() {
+            app.response = res;
+            app.is_loading = false;
+        }
+
+        if crossterm_event::poll(Duration::from_millis(250))? {
+            if let Event::Key(key) = crossterm_event::read()? {
+                match app.input_mode {
+                    InputMode::Normal => match key.code {
+                        KeyCode::Char('q') => match app.popup {
+                            Some(_) => {
+                                app.popup = None;
+                            }
+                            None => {
+                                return Ok(());
+                            }
+                        },
+                        _ => {}
                     },
                     _ => {}
-                },
-                _ => {}
-            }
+                }
 
-            event::handle_input(app, key);
+                event::handle_input(app, key).await;
+            }
         }
     }
 }

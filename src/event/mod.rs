@@ -3,12 +3,9 @@ mod navigation;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{
-    app::{App, AppBlock, AppPopup, InputMode, RequestMethod},
-    request,
-};
+use crate::app::{App, AppBlock, AppPopup, InputMode, Request, RequestMethod};
 
-pub fn handle_input(app: &mut App, key: KeyEvent) {
+pub async fn handle_input(app: &mut App, key: KeyEvent) {
     match app.input_mode {
         InputMode::Normal => match key.code {
             KeyCode::Char('i') => match app.selected_block {
@@ -35,7 +32,8 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                     app.popup = Some(AppPopup::ChangeMethod);
                 }
                 _ => {
-                    request::handle_request(app);
+                    app.is_loading = true;
+                    app.req_tx.send(Request::from_app(&app)).await.unwrap();
                 }
             },
 
@@ -110,7 +108,9 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
                     input::add_newline_at_cursor(&mut app.raw_body);
                 }
                 AppBlock::Endpoint => {
-                    request::handle_request(app);
+                    app.is_loading = true;
+
+                    app.req_tx.send(Request::from_app(&app)).await.unwrap();
 
                     app.input_mode = InputMode::Normal;
                 }

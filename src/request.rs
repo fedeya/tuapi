@@ -2,10 +2,10 @@ use std::str::FromStr;
 
 use reqwest::header::{HeaderMap, HeaderName};
 
-use crate::app::{App, RequestMethod, Response};
+use crate::app::{Request, RequestMethod, Response};
 
-pub fn handle_request(app: &mut App) {
-    let method = match app.method {
+pub async fn handle_request(req: Request) -> Response {
+    let method = match req.method {
         RequestMethod::Get => reqwest::Method::GET,
         RequestMethod::Post => reqwest::Method::POST,
         RequestMethod::Put => reqwest::Method::PUT,
@@ -14,22 +14,22 @@ pub fn handle_request(app: &mut App) {
 
     let mut headers = HeaderMap::new();
 
-    app.headers.iter().for_each(|(key, value)| {
+    req.headers.iter().for_each(|(key, value)| {
         headers.insert(
             HeaderName::from_str(key.as_str()).unwrap(),
             value.parse().unwrap(),
         );
     });
 
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
 
-    let mut builder = client.request(method, &app.endpoint.text).headers(headers);
+    let mut builder = client.request(method, &req.endpoint).headers(headers);
 
-    if !app.raw_body.text.trim().is_empty() {
-        builder = builder.body(app.raw_body.text.clone());
+    if !req.body.trim().is_empty() {
+        builder = builder.body(req.body);
     }
 
-    let response = builder.send().unwrap();
+    let response = builder.send().await.unwrap();
 
     let status_code = response.status().as_u16();
 
@@ -39,15 +39,15 @@ pub fn handle_request(app: &mut App) {
 
     match content_type.to_str().unwrap().to_lowercase() {
         h if h.contains("application/json") => {
-            let data = response.json::<serde_json::Value>().unwrap();
+            let data = response.json::<serde_json::Value>().await.unwrap();
 
             text = format!("{:#}\n", data);
         }
 
         _ => {
-            text = response.text().unwrap();
+            text = response.text().await.unwrap();
         }
     }
 
-    app.response = Some(Response { status_code, text });
+    Response { status_code, text }
 }
