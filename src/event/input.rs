@@ -13,7 +13,7 @@ pub fn move_cursor_left(input: &mut Input) {
 pub fn move_cursor_right(input: &mut Input) {
     let (_, text) = input
         .text
-        .lines()
+        .split("\n")
         .enumerate()
         .find(|(index, _)| *index == usize::from(input.cursor_position.y))
         .unwrap_or((0, input.text.as_str()));
@@ -32,7 +32,8 @@ pub fn move_cursor_down(input: &mut Input) {
     input.cursor_position.x = 0;
 
     let new_pos_y = input.cursor_position.y + 1;
-    let lines: u16 = input.text.lines().count().try_into().unwrap();
+    let lines: u16 = input.text.split("\n").count().try_into().unwrap();
+
     input.cursor_position.y = new_pos_y.clamp(0, if lines == 0 { 0 } else { lines - 1 })
 }
 
@@ -40,19 +41,27 @@ pub fn move_cursor_to_start_of_line(input: &mut Input) {
     input.cursor_position.x = 0;
 }
 
-pub fn move_cursor_to_end_of_line(input: &mut Input) {
+pub fn move_cursor_to_end_single_line(input: &mut Input) {
+    input.cursor_position.x = input.text.chars().count().try_into().unwrap();
+}
+
+pub fn move_cursor_to_end_multi_line(input: &mut Input) {
     let (_, text) = input
         .text
-        .lines()
+        .split("\n")
         .enumerate()
         .find(|(index, _)| *index == usize::from(input.cursor_position.y))
         .unwrap_or((0, input.text.as_str()));
 
-    input.cursor_position.x = text.len().try_into().unwrap();
+    let lines: u16 = input.text.split("\n").count().try_into().unwrap();
+
+    let text_len: u16 = text.chars().count().try_into().unwrap();
+
+    input.cursor_position.x = text_len + if lines == 0 { 0 } else { 1 };
 }
 
 pub fn remove_char_before_cursor(input: &mut Input) {
-    if input.text.lines().count() <= 1 {
+    if input.text.split("\n").count() <= 1 {
         remove_char_before_cursor_single_line(input);
     } else {
         remove_char_before_cursor_multi_line(input);
@@ -76,7 +85,7 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
 
     let new_text = input
         .text
-        .lines()
+        .split("\n")
         .enumerate()
         .map(|(index, line)| {
             let is_cursor_in_line = index == usize::from(input.cursor_position.y);
@@ -109,14 +118,14 @@ fn remove_char_before_cursor_multi_line(input: &mut Input) {
 
     if removed_line {
         move_cursor_up(input);
-        move_cursor_to_end_of_line(input);
+        move_cursor_to_end_multi_line(input);
     }
 
     move_cursor_left(input)
 }
 
 pub fn add_char_at_cursor(input: &mut Input, c: char) {
-    if input.text.lines().count() <= 1 {
+    if input.text.split("\n").count() <= 1 {
         add_char_at_cursor_single_line(input, c);
     } else {
         add_char_at_cursor_multi_line(input, c);
@@ -132,7 +141,7 @@ fn add_char_at_cursor_single_line(input: &mut Input, c: char) {
 fn add_char_at_cursor_multi_line(input: &mut Input, c: char) {
     let new_text = input
         .text
-        .lines()
+        .split("\n")
         .enumerate()
         .map(|(index, line)| {
             let is_cursor_in_line = index == usize::from(input.cursor_position.y);

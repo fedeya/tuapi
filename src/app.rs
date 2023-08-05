@@ -117,7 +117,7 @@ pub struct Input {
 impl Default for Input {
     fn default() -> Self {
         Self {
-            text: String::from(" "),
+            text: String::from(""),
             cursor_position: Coordinates::default(),
         }
     }
@@ -152,10 +152,7 @@ impl Default for App {
                 ..Input::default()
             },
             headers,
-            raw_body: Input {
-                text: String::from("{\n\"name\": \"test\"\n}"),
-                ..Input::default()
-            },
+            raw_body: Input::default(),
             method: RequestMethod::Get,
             request_tab: RequestTab::Body,
             selected_block: AppBlock::Endpoint,

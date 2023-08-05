@@ -1,12 +1,9 @@
-use std::io::stderr;
-
-use crossterm::cursor::position;
 use ratatui::{
     style::{Color, Style},
     text::{Line, Span},
     widgets::Paragraph,
 };
-use syntect::{easy::HighlightLines, util::LinesWithEndings};
+use syntect::easy::HighlightLines;
 
 use crate::app::{App, AppBlock, Input, InputMode};
 
@@ -44,10 +41,24 @@ pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
 
     let mut lines = Vec::new();
 
-    for (index, line) in LinesWithEndings::from(input.text.as_str()).enumerate() {
+    for (index, line) in input.text.split("\n").enumerate() {
         let ranges = h.highlight_line(line, &PS).unwrap();
 
         let is_cursor_in_line = index == usize::from(input.cursor_position.y);
+
+        if ranges.is_empty() && is_cursor_in_line {
+            lines.push(Line::from(Span::styled(
+                " ",
+                match app.input_mode {
+                    InputMode::Insert if app.selected_block == AppBlock::RequestContent => {
+                        Style::default().bg(Color::Green).fg(Color::Black)
+                    }
+                    _ => Style::default(),
+                },
+            )));
+
+            continue;
+        }
 
         if !is_cursor_in_line {
             let spans: Vec<Span> = ranges
@@ -78,30 +89,41 @@ pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
 
                 let position = get_current_position(&ranges, i);
 
-                eprintln!("cursor position: {:?}", input.cursor_position.x);
-                eprintln!("range: {:?} line: {:?}", i, index);
-                eprintln!("content: ({:?})", content);
-
                 let is_cursor_in_segment = input.cursor_position.x as usize >= position.0
                     && position.1 > input.cursor_position.x as usize;
 
-                eprintln!("is_cursor_in_segment: {:?}", is_cursor_in_segment);
-                eprintln!("\n");
+                let cursor_styles = match app.input_mode {
+                    InputMode::Insert if app.selected_block == AppBlock::RequestContent => {
+                        Style::default().bg(Color::Green).fg(Color::Black)
+                    }
+                    _ => Style::default(),
+                };
 
                 if !is_cursor_in_segment {
-                    vec![Span::styled(
-                        content.to_string(),
-                        Style {
-                            fg: translate_colour(style.foreground),
-                            ..Style::default()
+                    let is_last_segment =
+                        i == ranges.len() - 1 && input.cursor_position.x as usize == position.1;
+                    let is_first_segment = i == 0 && input.cursor_position.x as usize == position.0;
+
+                    vec![
+                        match is_first_segment {
+                            true => Span::styled(" ", cursor_styles),
+                            false => Span::raw(""),
                         },
-                    )]
+                        Span::styled(
+                            content.to_string(),
+                            Style {
+                                fg: translate_colour(style.foreground),
+                                ..Style::default()
+                            },
+                        ),
+                        match is_last_segment {
+                            true => Span::styled(" ", cursor_styles),
+                            false => Span::raw(""),
+                        },
+                    ]
                 } else {
                     let current = input.cursor_position.x as usize - position.0;
                     let (left, right) = content.split_at(current);
-
-                    eprintln!("left: {:?} right: {:?}", left, right);
-                    eprintln!("current: {:?}", current);
 
                     vec![
                         Span::styled(
@@ -113,23 +135,10 @@ pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
                         ),
                         Span::styled(
                             match right.get(0..1) {
-                                Some(c) => {
-                                    if c == "\n" {
-                                        " "
-                                    } else {
-                                        c
-                                    }
-                                }
+                                Some(c) => c,
                                 None => " ",
                             },
-                            match app.input_mode {
-                                InputMode::Insert
-                                    if app.selected_block == AppBlock::RequestContent =>
-                                {
-                                    Style::default().bg(Color::Green).fg(Color::Black)
-                                }
-                                _ => Style::default(),
-                            },
+                            cursor_styles,
                         ),
                         match right.get(1..) {
                             Some(c) => Span::styled(
@@ -149,41 +158,6 @@ pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
         lines.push(Line::from(spans.concat()));
     }
 
-    // let lines = input
-    //     .text
-    //     .lines()
-    //     .enumerate()
-    //     .map(|(index, line)| {
-    //         let is_cursor_in_line = index == usize::from(input.cursor_position.y);
-    //
-    //         if !is_cursor_in_line {
-    //             return Line::from(vec![Span::raw(line)]);
-    //         }
-    //
-    //         let (left, right) = line.split_at(input.cursor_position.x.into());
-    //
-    //         Line::from(vec![
-    //             Span::raw(left),
-    //             Span::styled(
-    //                 match right.get(0..1) {
-    //                     Some(c) => c,
-    //                     None => " ",
-    //                 },
-    //                 match app.input_mode {
-    //                     InputMode::Insert if app.selected_block == AppBlock::RequestContent => {
-    //                         Style::default().bg(Color::Green).fg(Color::Black)
-    //                     }
-    //                     _ => Style::default(),
-    //                 },
-    //             ),
-    //             match right.get(1..) {
-    //                 Some(c) => Span::raw(c),
-    //                 None => Span::raw(""),
-    //             },
-    //         ])
-    //     })
-    //     .collect::<Vec<Line>>();
-
     Paragraph::new(lines)
 }
 
@@ -196,12 +170,6 @@ fn get_current_position(
     for (_, content) in vector.get(0..index).unwrap() {
         current += content.len();
     }
-
-    eprintln!(
-        "start: {} end: {} index: {index}",
-        current,
-        current + vector[index].1.len()
-    );
 
     return (current, current + vector[index].1.len());
 }

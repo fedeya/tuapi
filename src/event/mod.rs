@@ -14,7 +14,7 @@ pub fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::Char('i') => match app.selected_block {
                 AppBlock::Endpoint => {
                     app.input_mode = InputMode::Insert;
-                    input::move_cursor_to_end_of_line(&mut app.endpoint);
+                    input::move_cursor_to_end_single_line(&mut app.endpoint);
                 }
                 AppBlock::RequestContent => {
                     app.input_mode = InputMode::Insert;
