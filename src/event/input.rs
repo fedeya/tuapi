@@ -1,171 +1,187 @@
-use crate::app::Input;
+use crate::app::Coordinates;
 
-pub fn move_cursor_left(input: &mut Input) {
-    let new_pos = if input.cursor_position.x == 0 {
-        0
-    } else {
-        input.cursor_position.x - 1
-    };
-
-    input.cursor_position.x = new_pos.clamp(0, input.text.chars().count().try_into().unwrap());
+pub struct Input {
+    pub text: String,
+    pub cursor_position: Coordinates,
 }
 
-pub fn move_cursor_right(input: &mut Input) {
-    let (_, text) = input
-        .text
-        .split("\n")
-        .enumerate()
-        .find(|(index, _)| *index == usize::from(input.cursor_position.y))
-        .unwrap_or((0, input.text.as_str()));
-
-    let new_pos = input.cursor_position.x + 1;
-
-    input.cursor_position.x = new_pos.clamp(0, text.chars().count().try_into().unwrap());
-}
-
-pub fn move_cursor_up(input: &mut Input) {
-    input.cursor_position.y -= if input.cursor_position.y == 0 { 0 } else { 1 };
-    input.cursor_position.x = 0;
-}
-
-pub fn move_cursor_down(input: &mut Input) {
-    input.cursor_position.x = 0;
-
-    let new_pos_y = input.cursor_position.y + 1;
-    let lines: u16 = input.text.split("\n").count().try_into().unwrap();
-
-    input.cursor_position.y = new_pos_y.clamp(0, if lines == 0 { 0 } else { lines - 1 })
-}
-
-pub fn move_cursor_to_start_of_line(input: &mut Input) {
-    input.cursor_position.x = 0;
-}
-
-pub fn move_cursor_to_end_single_line(input: &mut Input) {
-    input.cursor_position.x = input.text.chars().count().try_into().unwrap();
-}
-
-pub fn move_cursor_to_end_multi_line(input: &mut Input) {
-    let (_, text) = input
-        .text
-        .split("\n")
-        .enumerate()
-        .find(|(index, _)| *index == usize::from(input.cursor_position.y))
-        .unwrap_or((0, input.text.as_str()));
-
-    let lines: u16 = input.text.split("\n").count().try_into().unwrap();
-
-    let text_len: u16 = text.chars().count().try_into().unwrap();
-
-    input.cursor_position.x = text_len + if lines == 0 { 0 } else { 1 };
-}
-
-pub fn remove_char_before_cursor(input: &mut Input) {
-    if input.text.split("\n").count() <= 1 {
-        remove_char_before_cursor_single_line(input);
-    } else {
-        remove_char_before_cursor_multi_line(input);
+impl Default for Input {
+    fn default() -> Self {
+        Self {
+            text: String::from(""),
+            cursor_position: Coordinates::default(),
+        }
     }
 }
 
-pub fn remove_char_before_cursor_single_line(input: &mut Input) {
-    let removable = input.cursor_position.x != 0;
+impl Input {
+    pub fn move_cursor_left(&mut self) {
+        let new_pos = if self.cursor_position.x == 0 {
+            0
+        } else {
+            self.cursor_position.x - 1
+        };
 
-    if !removable {
-        return;
+        self.cursor_position.x = new_pos.clamp(0, self.text.chars().count().try_into().unwrap());
     }
 
-    input.text.remove(input.cursor_position.x as usize - 1);
+    pub fn move_cursor_right(&mut self) {
+        let (_, text) = self
+            .text
+            .split("\n")
+            .enumerate()
+            .find(|(index, _)| *index == usize::from(self.cursor_position.y))
+            .unwrap_or((0, self.text.as_str()));
 
-    move_cursor_left(input)
-}
+        let new_pos = self.cursor_position.x + 1;
 
-fn remove_char_before_cursor_multi_line(input: &mut Input) {
-    let mut removed_line: bool = false;
-
-    let new_text = input
-        .text
-        .split("\n")
-        .enumerate()
-        .map(|(index, line)| {
-            let is_cursor_in_line = index == usize::from(input.cursor_position.y);
-
-            let is_cursor_in_next_line = index + 1 == usize::from(input.cursor_position.y);
-
-            if is_cursor_in_next_line && input.cursor_position.x == 0 {
-                removed_line = true;
-                return String::from(line);
-            }
-
-            if !is_cursor_in_line || (input.cursor_position.x == 0 && index == 0) {
-                return format!("{line}\n");
-            }
-
-            if input.cursor_position.x == 0 {
-                return format!("{line}\n");
-            }
-
-            let mut new_line = String::from(line);
-
-            new_line.remove(input.cursor_position.x as usize - 1);
-            removed_line = false;
-            format!("{new_line}\n")
-        })
-        .collect::<Vec<String>>()
-        .join("");
-
-    input.text = new_text;
-
-    if removed_line {
-        move_cursor_up(input);
-        move_cursor_to_end_multi_line(input);
+        self.cursor_position.x = new_pos.clamp(0, text.chars().count().try_into().unwrap());
     }
 
-    move_cursor_left(input)
-}
-
-pub fn add_char_at_cursor(input: &mut Input, c: char) {
-    if input.text.split("\n").count() <= 1 {
-        add_char_at_cursor_single_line(input, c);
-    } else {
-        add_char_at_cursor_multi_line(input, c);
+    pub fn move_cursor_up(&mut self) {
+        self.cursor_position.y -= if self.cursor_position.y == 0 { 0 } else { 1 };
+        self.cursor_position.x = 0;
     }
-}
 
-fn add_char_at_cursor_single_line(input: &mut Input, c: char) {
-    input.text.insert(input.cursor_position.x.into(), c);
+    pub fn move_cursor_down(&mut self) {
+        self.cursor_position.x = 0;
 
-    move_cursor_right(input)
-}
+        let new_pos_y = self.cursor_position.y + 1;
+        let lines: u16 = self.text.split("\n").count().try_into().unwrap();
 
-fn add_char_at_cursor_multi_line(input: &mut Input, c: char) {
-    let new_text = input
-        .text
-        .split("\n")
-        .enumerate()
-        .map(|(index, line)| {
-            let is_cursor_in_line = index == usize::from(input.cursor_position.y);
+        self.cursor_position.y = new_pos_y.clamp(0, if lines == 0 { 0 } else { lines - 1 })
+    }
 
-            if !is_cursor_in_line {
-                return String::from(line);
-            }
+    pub fn move_cursor_to_start_of_line(&mut self) {
+        self.cursor_position.x = 0;
+    }
 
-            let mut new_line = String::from(line);
+    pub fn move_cursor_to_end_single_line(&mut self) {
+        self.cursor_position.x = self.text.chars().count().try_into().unwrap();
+    }
 
-            new_line.insert(input.cursor_position.x.into(), c);
+    pub fn move_cursor_to_end_multi_line(&mut self) {
+        let (_, text) = self
+            .text
+            .split("\n")
+            .enumerate()
+            .find(|(index, _)| *index == usize::from(self.cursor_position.y))
+            .unwrap_or((0, self.text.as_str()));
 
-            new_line
-        })
-        .collect::<Vec<String>>()
-        .join("\n");
+        let lines: u16 = self.text.split("\n").count().try_into().unwrap();
 
-    input.text = new_text;
-    move_cursor_right(input)
-}
+        let text_len: u16 = text.chars().count().try_into().unwrap();
 
-pub fn add_newline_at_cursor(input: &mut Input) {
-    add_char_at_cursor(input, '\n');
+        self.cursor_position.x = text_len + if lines == 0 { 0 } else { 1 };
+    }
 
-    move_cursor_to_start_of_line(input);
-    move_cursor_down(input);
+    pub fn remove_char_before_cursor(&mut self) {
+        if self.text.split("\n").count() <= 1 {
+            self.remove_char_before_cursor_single_line();
+        } else {
+            self.remove_char_before_cursor_multi_line();
+        }
+    }
+
+    pub fn remove_char_before_cursor_single_line(&mut self) {
+        let removable = self.cursor_position.x != 0;
+
+        if !removable {
+            return;
+        }
+
+        self.text.remove(self.cursor_position.x as usize - 1);
+
+        self.move_cursor_left();
+    }
+
+    fn remove_char_before_cursor_multi_line(&mut self) {
+        let mut removed_line: bool = false;
+
+        let new_text = self
+            .text
+            .split("\n")
+            .enumerate()
+            .map(|(index, line)| {
+                let is_cursor_in_line = index == usize::from(self.cursor_position.y);
+
+                let is_cursor_in_next_line = index + 1 == usize::from(self.cursor_position.y);
+
+                if is_cursor_in_next_line && self.cursor_position.x == 0 {
+                    removed_line = true;
+                    return String::from(line);
+                }
+
+                if !is_cursor_in_line || (self.cursor_position.x == 0 && index == 0) {
+                    return format!("{line}\n");
+                }
+
+                if self.cursor_position.x == 0 {
+                    return format!("{line}\n");
+                }
+
+                let mut new_line = String::from(line);
+
+                new_line.remove(self.cursor_position.x as usize - 1);
+                removed_line = false;
+                format!("{new_line}\n")
+            })
+            .collect::<Vec<String>>()
+            .join("");
+
+        self.text = new_text;
+
+        if removed_line {
+            self.move_cursor_up();
+            self.move_cursor_to_end_multi_line();
+        }
+
+        self.move_cursor_left();
+    }
+
+    pub fn add_char_at_cursor(&mut self, c: char) {
+        if self.text.split("\n").count() <= 1 {
+            self.add_char_at_cursor_single_line(c);
+        } else {
+            self.add_char_at_cursor_multi_line(c);
+        }
+    }
+
+    fn add_char_at_cursor_single_line(&mut self, c: char) {
+        self.text.insert(self.cursor_position.x.into(), c);
+
+        self.move_cursor_right()
+    }
+
+    fn add_char_at_cursor_multi_line(&mut self, c: char) {
+        let new_text = self
+            .text
+            .split("\n")
+            .enumerate()
+            .map(|(index, line)| {
+                let is_cursor_in_line = index == usize::from(self.cursor_position.y);
+
+                if !is_cursor_in_line {
+                    return String::from(line);
+                }
+
+                let mut new_line = String::from(line);
+
+                new_line.insert(self.cursor_position.x.into(), c);
+
+                new_line
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        self.text = new_text;
+        self.move_cursor_right()
+    }
+
+    pub fn add_newline_at_cursor(&mut self) {
+        self.add_char_at_cursor('\n');
+
+        self.move_cursor_to_start_of_line();
+        self.move_cursor_down();
+    }
 }

@@ -5,7 +5,8 @@ use ratatui::{
 };
 use syntect::easy::HighlightLines;
 
-use crate::app::{App, AppBlock, Input, InputMode};
+use crate::app::{App, AppBlock, InputMode};
+use crate::event::input::Input;
 
 use super::syntax::{translate_colour, PS, TS};
 

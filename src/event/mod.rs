@@ -1,4 +1,4 @@
-mod input;
+pub mod input;
 mod navigation;
 
 use crossterm::event::{KeyCode, KeyEvent};
@@ -11,7 +11,7 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::Char('i') => match app.selected_block {
                 AppBlock::Endpoint => {
                     app.input_mode = InputMode::Insert;
-                    input::move_cursor_to_end_single_line(&mut app.endpoint);
+                    app.endpoint.move_cursor_to_end_single_line();
                 }
                 AppBlock::RequestContent => {
                     app.input_mode = InputMode::Insert;
@@ -19,10 +19,10 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                 _ => {}
             },
             KeyCode::Tab => {
-                navigation::move_to_next_block(app);
+                app.selected_block.next();
             }
             KeyCode::BackTab => {
-                navigation::move_to_previous_block(app);
+                app.selected_block.previous();
             }
             KeyCode::Enter => match app.selected_block {
                 AppBlock::Request => {
@@ -42,7 +42,7 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     navigation::scroll_down_response(app);
                 }
                 AppBlock::Request => {
-                    navigation::move_to_previous_request_tab(app);
+                    app.request_tab.previous();
                 }
                 AppBlock::Method => {
                     app.method = RequestMethod::Get;
@@ -54,7 +54,7 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     navigation::scroll_up_response(app);
                 }
                 AppBlock::Request => {
-                    navigation::move_next_request_tab(app);
+                    app.request_tab.next();
                 }
                 AppBlock::Method => {
                     app.method = RequestMethod::Post;
@@ -66,46 +66,46 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
         InputMode::Insert => match key.code {
             KeyCode::Char(c) => match app.selected_block {
                 AppBlock::Endpoint => {
-                    input::add_char_at_cursor(&mut app.endpoint, c);
+                    app.endpoint.add_char_at_cursor(c);
                 }
                 AppBlock::RequestContent => {
-                    input::add_char_at_cursor(&mut app.raw_body, c);
+                    app.raw_body.add_char_at_cursor(c);
                 }
                 _ => {}
             },
             KeyCode::Up => match app.selected_block {
                 AppBlock::RequestContent => {
-                    input::move_cursor_up(&mut app.raw_body);
+                    app.raw_body.move_cursor_up();
                 }
                 _ => {}
             },
             KeyCode::Down => match app.selected_block {
                 AppBlock::RequestContent => {
-                    input::move_cursor_down(&mut app.raw_body);
+                    app.raw_body.move_cursor_down();
                 }
                 _ => {}
             },
             KeyCode::Right => match app.selected_block {
                 AppBlock::Endpoint => {
-                    input::move_cursor_right(&mut app.endpoint);
+                    app.endpoint.move_cursor_right();
                 }
                 AppBlock::RequestContent => {
-                    input::move_cursor_right(&mut app.raw_body);
+                    app.raw_body.move_cursor_right();
                 }
                 _ => (),
             },
             KeyCode::Left => match app.selected_block {
                 AppBlock::Endpoint => {
-                    input::move_cursor_left(&mut app.endpoint);
+                    app.endpoint.move_cursor_left();
                 }
                 AppBlock::RequestContent => {
-                    input::move_cursor_left(&mut app.raw_body);
+                    app.raw_body.move_cursor_left();
                 }
                 _ => (),
             },
             KeyCode::Enter => match app.selected_block {
                 AppBlock::RequestContent => {
-                    input::add_newline_at_cursor(&mut app.raw_body);
+                    app.raw_body.add_newline_at_cursor();
                 }
                 AppBlock::Endpoint => {
                     app.is_loading = true;
@@ -118,16 +118,16 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
             },
             KeyCode::Tab => {
                 if let AppBlock::RequestContent = app.selected_block {
-                    input::add_char_at_cursor(&mut app.raw_body, ' ');
-                    input::add_char_at_cursor(&mut app.raw_body, ' ');
+                    app.raw_body.add_char_at_cursor(' ');
+                    app.raw_body.add_char_at_cursor(' ');
                 }
             }
             KeyCode::Backspace => match app.selected_block {
                 AppBlock::Endpoint => {
-                    input::remove_char_before_cursor(&mut app.endpoint);
+                    app.endpoint.remove_char_before_cursor_single_line();
                 }
                 AppBlock::RequestContent => {
-                    input::remove_char_before_cursor(&mut app.raw_body);
+                    app.raw_body.remove_char_before_cursor();
                 }
                 _ => {}
             },

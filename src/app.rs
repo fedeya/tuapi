@@ -1,3 +1,4 @@
+use crate::event::input::Input;
 use std::collections::HashMap;
 
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -72,6 +73,32 @@ impl Into<RequestTab> for usize {
     }
 }
 
+impl RequestTab {
+    pub fn next(&mut self) {
+        let mut selected_tab: usize = self.clone().into();
+
+        selected_tab += 1;
+
+        if selected_tab > 4 {
+            selected_tab = 0;
+        }
+
+        *self = selected_tab.into();
+    }
+
+    pub fn previous(&mut self) {
+        let mut seleced_tab: usize = self.clone().into();
+
+        if seleced_tab == 0 {
+            seleced_tab = 4;
+        } else {
+            seleced_tab -= 1;
+        }
+
+        *self = seleced_tab.into();
+    }
+}
+
 impl From<AppBlock> for u16 {
     fn from(block: AppBlock) -> Self {
         match block {
@@ -97,6 +124,32 @@ impl Into<AppBlock> for u16 {
     }
 }
 
+impl AppBlock {
+    pub fn next(&mut self) {
+        let mut selected_block: u16 = self.clone().into();
+
+        selected_block += 1;
+
+        if selected_block > 5 {
+            selected_block = 1;
+        }
+
+        *self = selected_block.into();
+    }
+
+    pub fn previous(&mut self) {
+        let mut selected_block: u16 = self.clone().into();
+
+        selected_block -= 1;
+
+        if selected_block == 0 {
+            selected_block = 5;
+        }
+
+        *self = selected_block.into();
+    }
+}
+
 #[derive(Debug)]
 pub struct Response {
     pub status_code: u16,
@@ -111,20 +164,6 @@ pub struct Coordinates {
 impl Default for Coordinates {
     fn default() -> Self {
         Self { x: 0, y: 0 }
-    }
-}
-
-pub struct Input {
-    pub text: String,
-    pub cursor_position: Coordinates,
-}
-
-impl Default for Input {
-    fn default() -> Self {
-        Self {
-            text: String::from(""),
-            cursor_position: Coordinates::default(),
-        }
     }
 }
 
