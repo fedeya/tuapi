@@ -1,4 +1,7 @@
+pub mod form;
+
 use crate::event::input::Input;
+use form::Form;
 use std::collections::HashMap;
 
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -48,6 +51,11 @@ pub enum RequestTab {
     Cookies,
 }
 
+pub trait Navigation {
+    fn next(&mut self) {}
+    fn previous(&mut self) {}
+}
+
 impl From<RequestTab> for usize {
     fn from(tab: RequestTab) -> Self {
         match tab {
@@ -73,8 +81,8 @@ impl Into<RequestTab> for usize {
     }
 }
 
-impl RequestTab {
-    pub fn next(&mut self) {
+impl Navigation for RequestTab {
+    fn next(&mut self) {
         let mut selected_tab: usize = self.clone().into();
 
         selected_tab += 1;
@@ -86,7 +94,7 @@ impl RequestTab {
         *self = selected_tab.into();
     }
 
-    pub fn previous(&mut self) {
+    fn previous(&mut self) {
         let mut seleced_tab: usize = self.clone().into();
 
         if seleced_tab == 0 {
@@ -124,8 +132,8 @@ impl Into<AppBlock> for u16 {
     }
 }
 
-impl AppBlock {
-    pub fn next(&mut self) {
+impl Navigation for AppBlock {
+    fn next(&mut self) {
         let mut selected_block: u16 = self.clone().into();
 
         selected_block += 1;
@@ -137,7 +145,7 @@ impl AppBlock {
         *self = selected_block.into();
     }
 
-    pub fn previous(&mut self) {
+    fn previous(&mut self) {
         let mut selected_block: u16 = self.clone().into();
 
         selected_block -= 1;
@@ -156,6 +164,7 @@ pub struct Response {
     pub text: String,
 }
 
+#[derive(Clone)]
 pub struct Coordinates {
     pub x: u16,
     pub y: u16,
@@ -169,6 +178,7 @@ impl Default for Coordinates {
 
 pub enum AppPopup {
     ChangeMethod,
+    FormPopup(Form),
 }
 
 pub struct Request {
@@ -200,6 +210,8 @@ pub struct App {
 
     pub selected_block: AppBlock,
 
+    pub selected_header: u16,
+
     pub response: Option<Response>,
 
     pub res_rx: Receiver<Option<Response>>,
@@ -226,7 +238,8 @@ impl Default for App {
     fn default() -> Self {
         let mut headers = HashMap::new();
 
-        headers.insert("content-type".to_string(), "application/json".to_string());
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        headers.insert("Accept".to_string(), "application/json".to_string());
 
         let (res_tx, res_rx) = channel(1);
         let (req_tx, req_rx) = channel(1);
@@ -239,6 +252,7 @@ impl Default for App {
                 text: String::from("https://fakestoreapi.com/products"),
                 ..Input::default()
             },
+            selected_header: 0,
             is_loading: false,
             headers,
             res_rx,

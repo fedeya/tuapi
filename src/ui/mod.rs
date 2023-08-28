@@ -7,7 +7,7 @@ use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout, Rect},
     style::{Color, Style},
     text::Span,
-    widgets::{Block, Borders, Clear, Paragraph, Tabs},
+    widgets::{Block, Borders, Clear, Paragraph, Row, Table, TableState, Tabs},
     Frame,
 };
 
@@ -16,7 +16,7 @@ use crate::app::{App, AppBlock, AppPopup, InputMode, RequestMethod, RequestTab};
 use self::input::{create_input, create_textarea};
 
 fn selectable_block(block: AppBlock, app: &App) -> Block {
-    let is_selected = block == app.selected_block;
+    let is_selected = block == app.selected_block && app.popup.is_none();
 
     let border_style = Style::default().fg(if is_selected && app.input_mode == InputMode::Insert {
         Color::Green
@@ -60,7 +60,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(main_chunks[1]);
 
-    let endpoint_input = create_input(&app.endpoint, app)
+    let endpoint_input = create_input(&app.endpoint, app, app.selected_block == AppBlock::Endpoint)
         .block(selectable_block(AppBlock::Endpoint, app).title("Endpoint"));
 
     let method_p = Paragraph::new(app.method.to_string())
@@ -115,6 +115,37 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     match app.request_tab {
         RequestTab::Body => {
             frame.render_widget(raw_body_input, request_chunks[1]);
+        }
+        RequestTab::Headers => {
+            let rows: Vec<Row> = app
+                .headers
+                .iter()
+                .map(|(key, value)| {
+                    Row::new(vec![key.clone(), value.clone()])
+                        .style(Style::default().fg(Color::White))
+                })
+                .collect();
+
+            let table = Table::new(rows)
+                .header(
+                    Row::new(vec!["Key", "Value"])
+                        .style(Style::default().fg(Color::Yellow))
+                        .bottom_margin(1),
+                )
+                .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
+                .highlight_style(Style::default().fg(Color::Green))
+                .highlight_symbol(">> ")
+                .block(
+                    selectable_block(AppBlock::RequestContent, app)
+                        .title("Headers")
+                        .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
+                );
+
+            let mut state = TableState::default();
+
+            state.select(Some(app.selected_header.into()));
+
+            frame.render_stateful_widget(table, request_chunks[1], &mut state);
         }
         _ => {}
     }
@@ -199,18 +230,74 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
             frame.render_widget(Clear, area);
             frame.render_widget(block, area);
         }
+        Some(AppPopup::FormPopup(form)) => {
+            let block = Block::default()
+                .title(form.title.clone())
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Blue));
+
+            let real_fields = form
+                .fields
+                .iter()
+                .filter(|field| field.hidden != true)
+                .collect::<Vec<_>>();
+
+            let height = real_fields.len() * 3 + 4;
+
+            let area = centered_rect(70, height as u16, frame.size());
+
+            let inputs = real_fields.iter().enumerate().map(|(index, field)| {
+                let input = create_input(&field.input, &app, index == form.selected_field as usize)
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(Style::default().fg(
+                                if index as u16 == form.selected_field
+                                    && app.input_mode == InputMode::Insert
+                                {
+                                    Color::Green
+                                } else if index as u16 == form.selected_field {
+                                    Color::Blue
+                                } else {
+                                    Color::White
+                                },
+                            ))
+                            .title(field.label.clone()),
+                    );
+
+                (index, input)
+            });
+
+            frame.render_widget(Clear, area);
+            frame.render_widget(block, area);
+
+            inputs.for_each(|(index, p)| {
+                frame.render_widget(
+                    p,
+                    Rect::new(area.x + 2, area.y + index as u16 * 3 + 1, area.width - 4, 3),
+                );
+            });
+
+            frame.render_widget(
+                Paragraph::new("Press Enter to Accept Changes")
+                    .style(Style::default().fg(Color::White))
+                    .alignment(Alignment::Center),
+                Rect::new(area.x + 2, area.y + height as u16 - 2, area.width - 4, 1),
+            );
+        }
         None => {}
     }
 }
 
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+fn centered_rect(width: u16, height: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Length((r.height - height) / 2),
+                Constraint::Length(height),
+                Constraint::Length((r.height - height) / 2),
             ]
             .as_ref(),
         )
@@ -220,9 +307,9 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         .direction(Direction::Horizontal)
         .constraints(
             [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Length((r.width - width) / 2),
+                Constraint::Length(width),
+                Constraint::Length((r.width - width) / 2),
             ]
             .as_ref(),
         )

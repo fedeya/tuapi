@@ -1,5 +1,6 @@
 use crate::app::Coordinates;
 
+#[derive(Clone)]
 pub struct Input {
     pub text: String,
     pub cursor_position: Coordinates,

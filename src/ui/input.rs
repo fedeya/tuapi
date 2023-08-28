@@ -10,7 +10,7 @@ use crate::event::input::Input;
 
 use super::syntax::{translate_colour, PS, TS};
 
-pub fn create_input<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
+pub fn create_input<'a>(input: &'a Input, app: &App, is_selected: bool) -> Paragraph<'a> {
     let (left, right) = input.text.split_at(input.cursor_position.x.into());
 
     let line = Line::from(vec![
@@ -21,7 +21,7 @@ pub fn create_input<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
                 None => " ",
             },
             match app.input_mode {
-                InputMode::Insert if app.selected_block == AppBlock::Endpoint => {
+                InputMode::Insert if is_selected => {
                     Style::default().bg(Color::Green).fg(Color::Black)
                 }
                 _ => Style::default(),

@@ -1,6 +1,5 @@
 mod app;
 mod event;
-mod input;
 mod request;
 mod ui;
 

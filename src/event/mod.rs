@@ -1,11 +1,20 @@
 pub mod input;
 mod navigation;
+mod popup;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::app::{App, AppBlock, AppPopup, InputMode, Request, RequestMethod};
+use crate::app::{
+    form::Form, form::FormField, form::FormKind, App, AppBlock, AppPopup, InputMode, Navigation,
+    Request, RequestMethod, RequestTab,
+};
 
 pub async fn handle_input(app: &mut App, key: KeyEvent) {
+    if let Some(_) = &mut app.popup {
+        popup::handle_popup_events(app, key);
+        return;
+    }
+
     match app.input_mode {
         InputMode::Normal => match key.code {
             KeyCode::Char('i') => match app.selected_block {
@@ -14,7 +23,9 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     app.endpoint.move_cursor_to_end_single_line();
                 }
                 AppBlock::RequestContent => {
-                    app.input_mode = InputMode::Insert;
+                    if let RequestTab::Body = app.request_tab {
+                        app.input_mode = InputMode::Insert;
+                    }
                 }
                 _ => {}
             },
@@ -36,7 +47,6 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     app.req_tx.send(Request::from_app(&app)).await.unwrap();
                 }
             },
-
             KeyCode::Char('j') => match app.selected_block {
                 AppBlock::Response => {
                     navigation::scroll_down_response(app);
@@ -44,6 +54,18 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                 AppBlock::Request => {
                     app.request_tab.previous();
                 }
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Headers => {
+                        let quantity = app.headers.len() as u16;
+
+                        if app.selected_header < quantity - 1 {
+                            app.selected_header += 1;
+                        } else {
+                            app.selected_header = 0;
+                        }
+                    }
+                    _ => {}
+                },
                 AppBlock::Method => {
                     app.method = RequestMethod::Get;
                 }
@@ -56,9 +78,93 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                 AppBlock::Request => {
                     app.request_tab.next();
                 }
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Headers => {
+                        let quantity = app.headers.len() as u16;
+
+                        if app.selected_header > 0 {
+                            app.selected_header -= 1;
+                        } else {
+                            app.selected_header = quantity - 1;
+                        }
+                    }
+                    _ => {}
+                },
                 AppBlock::Method => {
                     app.method = RequestMethod::Post;
                 }
+                _ => {}
+            },
+            KeyCode::Char('a') => match app.selected_block {
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Headers => {
+                        let key_input = FormField::new("Key", "key");
+
+                        let value_input = FormField::new("Value", "value");
+
+                        let form = Form::new(FormKind::AddHeader, vec![key_input, value_input])
+                            .title("Add Header");
+
+                        app.popup = Some(AppPopup::FormPopup(form));
+                    }
+                    _ => {}
+                },
+                _ => {}
+            },
+            KeyCode::Char('e') => match app.selected_block {
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Headers => {
+                        let key = app
+                            .headers
+                            .clone()
+                            .keys()
+                            .nth(app.selected_header as usize)
+                            .unwrap()
+                            .to_owned();
+
+                        let value = app.headers.get(&key).unwrap().to_owned();
+
+                        let key_input = FormField::new("Key", "key").value(&key);
+
+                        let current_key = FormField::new("Current Key", "current_key")
+                            .value(&key)
+                            .hidden();
+
+                        let value_input = FormField::new("Value", "value").value(&value);
+
+                        let form = Form::new(
+                            FormKind::EditHeader,
+                            vec![key_input, value_input, current_key],
+                        )
+                        .title("Edit Header");
+
+                        app.popup = Some(AppPopup::FormPopup(form));
+                    }
+                    _ => {}
+                },
+                _ => {}
+            },
+            KeyCode::Char('d') => match app.selected_block {
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Headers => {
+                        let key = app
+                            .headers
+                            .clone()
+                            .keys()
+                            .nth(app.selected_header as usize)
+                            .unwrap()
+                            .to_owned();
+
+                        app.headers.remove(&key);
+
+                        if app.selected_header as usize == app.headers.len()
+                            && app.headers.len() != 0
+                        {
+                            app.selected_header -= 1;
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             },
             _ => {}
@@ -69,7 +175,9 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     app.endpoint.add_char_at_cursor(c);
                 }
                 AppBlock::RequestContent => {
-                    app.raw_body.add_char_at_cursor(c);
+                    if let RequestTab::Body = app.request_tab {
+                        app.raw_body.add_char_at_cursor(c);
+                    }
                 }
                 _ => {}
             },
