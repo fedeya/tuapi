@@ -4,7 +4,7 @@ use reqwest::header::{HeaderMap, HeaderName};
 
 use crate::app::{Request, RequestMethod, Response};
 
-pub async fn handle_request(req: Request) -> Response {
+pub async fn send(req: Request) -> Response {
     let method = match req.method {
         RequestMethod::Get => reqwest::Method::GET,
         RequestMethod::Post => reqwest::Method::POST,

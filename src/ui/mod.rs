@@ -237,27 +237,23 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Blue));
 
-            let real_fields = form
-                .fields
-                .iter()
-                .filter(|field| field.hidden != true)
-                .collect::<Vec<_>>();
+            let visible_fields = form.visible_fields();
 
-            let height = real_fields.len() * 3 + 4;
+            let height = visible_fields.len() * 3 + 4;
 
             let area = centered_rect(70, height as u16, frame.size());
 
-            let inputs = real_fields.iter().enumerate().map(|(index, field)| {
+            let inputs = visible_fields.iter().enumerate().map(|(index, field)| {
                 let input = create_input(&field.input, &app, index == form.selected_field as usize)
                     .block(
                         Block::default()
                             .borders(Borders::ALL)
                             .border_style(Style::default().fg(
-                                if index as u16 == form.selected_field
+                                if index == form.selected_field
                                     && app.input_mode == InputMode::Insert
                                 {
                                     Color::Green
-                                } else if index as u16 == form.selected_field {
+                                } else if index == form.selected_field {
                                     Color::Blue
                                 } else {
                                     Color::White

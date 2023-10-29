@@ -28,13 +28,9 @@ async fn main() -> Result<(), Error> {
         original_hook(panic);
     }));
 
-    let res = run(&mut terminal, &mut app).await;
+    run(&mut terminal, &mut app).await?;
 
     restore_terminal()?;
-
-    if let Err(err) = res {
-        println!("{}", err);
-    }
 
     Ok(())
 }

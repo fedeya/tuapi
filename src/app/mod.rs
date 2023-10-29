@@ -52,7 +52,10 @@ pub enum RequestTab {
 }
 
 pub trait Navigation {
+    /// Go to the next item
     fn next(&mut self) {}
+
+    /// Go to the previous item
     fn previous(&mut self) {}
 }
 
@@ -227,7 +230,7 @@ pub struct App {
 fn handle_requests(mut req_rx: Receiver<Request>, res_tx: Sender<Option<Response>>) {
     tokio::spawn(async move {
         while let Some(req) = req_rx.recv().await {
-            let res = request::handle_request(req).await;
+            let res = request::send(req).await;
 
             res_tx.send(Some(res)).await.unwrap();
         }
@@ -236,10 +239,10 @@ fn handle_requests(mut req_rx: Receiver<Request>, res_tx: Sender<Option<Response
 
 impl Default for App {
     fn default() -> Self {
-        let mut headers = HashMap::new();
-
-        headers.insert("Content-Type".to_string(), "application/json".to_string());
-        headers.insert("Accept".to_string(), "application/json".to_string());
+        let headers = HashMap::from([
+            ("Content-Type".to_string(), "application/json".to_string()),
+            ("Accept".to_string(), "application/json".to_string()),
+        ]);
 
         let (res_tx, res_rx) = channel(1);
         let (req_tx, req_rx) = channel(1);

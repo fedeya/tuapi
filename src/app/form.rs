@@ -20,12 +20,14 @@ impl FormField {
         }
     }
 
+    /// Set the value of the input
     pub fn value(mut self, value: &str) -> Self {
         self.input.text = value.to_owned();
 
         self
     }
 
+    /// Set the input to be hidden
     pub fn hidden(mut self) -> Self {
         self.hidden = true;
 
@@ -47,7 +49,7 @@ pub struct Form {
 
     pub kind: FormKind,
 
-    pub selected_field: u16,
+    pub selected_field: usize,
 }
 
 impl Form {
@@ -60,6 +62,7 @@ impl Form {
         }
     }
 
+    /// Set the title of the form
     pub fn title(mut self, title: &str) -> Self {
         self.title = title.to_owned();
 
@@ -67,9 +70,21 @@ impl Form {
     }
 }
 
+impl Form {
+    /// Returns all fields that are not hidden
+    pub fn visible_fields(&self) -> Vec<FormField> {
+        self.fields
+            .iter()
+            .filter(|field| !field.hidden)
+            .cloned()
+            .collect()
+    }
+}
+
 impl Navigation for Form {
+    /// Go to the next field
     fn next(&mut self) {
-        if self.fields.len() - 1 == self.selected_field as usize {
+        if self.visible_fields().len() - 1 == self.selected_field {
             self.selected_field = 0;
             return;
         }
@@ -77,9 +92,10 @@ impl Navigation for Form {
         self.selected_field += 1;
     }
 
+    /// Go to the previous field
     fn previous(&mut self) {
         if self.selected_field == 0 {
-            self.selected_field = self.fields.len() as u16 - 1;
+            self.selected_field = self.visible_fields().len() - 1;
             return;
         }
 
