@@ -25,7 +25,9 @@ async fn main() -> Result<(), Error> {
 
     let mut app = App::default();
 
-    app.endpoint.text = cli.endpoint.unwrap_or_default();
+    if let Some(url) = cli.url {
+        app.endpoint.text = url;
+    }
 
     if let Some(method) = cli.method {
         app.method = method;

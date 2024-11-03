@@ -1,6 +1,7 @@
 mod input;
 mod popup;
 mod request_tab;
+mod response;
 mod syntax;
 
 use std::io::Stdout;
@@ -9,13 +10,13 @@ use popup::render_popup;
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout},
     style::{Color, Style},
-    text::Span,
-    widgets::{Block, Borders, Paragraph, Tabs},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 use request_tab::render_request_tab;
+use response::render_response;
 
-use crate::app::{App, AppBlock, InputMode, OrderNavigation, RequestMethod};
+use crate::app::{App, AppBlock, InputMode, RequestMethod};
 
 use self::input::create_input;
 
@@ -85,114 +86,16 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
             .title("Help"),
     );
 
-    let request_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
-        .split(content_chunks[0]);
-
-    let response_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(3)])
-        .split(content_chunks[1]);
-
-    let request_tabs = vec![
-        Span::styled("Body", Style::default().fg(Color::White)),
-        Span::styled("Query", Style::default().fg(Color::White)),
-        Span::styled("Headers", Style::default().fg(Color::White)),
-        // Span::styled("Auth", Style::default().fg(Color::White)),
-        // Span::styled("Cookies", Style::default().fg(Color::White)),
-    ];
-
-    let tab = Tabs::new(request_tabs)
-        .block(selectable_block(AppBlock::Request, app))
-        .divider(Span::raw("|"))
-        .select(app.request_tab.clone().get_index())
-        .highlight_style(Style::default().fg(Color::Green));
-
     frame.render_widget(method_p, header_chunks[0]);
     frame.render_widget(endpoint_input, header_chunks[1]);
 
-    frame.render_widget(tab, request_chunks[0]);
+    render_request_tab(app, frame, content_chunks[0]);
 
-    render_request_tab(app, frame, request_chunks.to_vec());
-
-    render_response(app, frame, response_chunks.to_vec());
+    render_response(app, frame, content_chunks[1]);
 
     frame.render_widget(help_p, main_chunks[2]);
 
     if let Some(_) = app.popup {
         render_popup(app, frame);
-    }
-}
-
-fn render_response(
-    app: &mut App,
-    frame: &mut Frame<CrosstermBackend<Stdout>>,
-    response_chunks: Vec<ratatui::prelude::Rect>,
-) {
-    match app.response.as_ref() {
-        Some(r) => {
-            let lines_count = u16::try_from(r.text.lines().count()).unwrap_or(1);
-            let max_x = if lines_count > response_chunks[0].height {
-                lines_count - (response_chunks[0].height - 2)
-            } else {
-                0
-            };
-
-            app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
-
-            let lines = syntax::highlight_response(r.text.clone(), r.content_type.clone());
-
-            let response_p = Paragraph::new(lines)
-                .block(selectable_block(AppBlock::Response, app).title("Response"))
-                // .wrap(Wrap { trim: false })
-                .scroll(app.response_scroll);
-
-            let status_code_style = Style::default().fg(match r.status_code {
-                200..=299 => Color::Green,
-                300..=399 => Color::Blue,
-                400..=499 => Color::Yellow,
-                500..=599 => Color::Red,
-                _ => Color::White,
-            });
-
-            let status_code_text = if app.is_loading {
-                "Loading...".to_string()
-            } else {
-                r.status_code.to_string()
-            };
-
-            let status_code_p = Paragraph::new(status_code_text)
-                .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(status_code_style),
-                )
-                .style(status_code_style)
-                .alignment(Alignment::Center);
-
-            frame.render_widget(response_p, response_chunks[0]);
-            frame.render_widget(status_code_p, response_chunks[1]);
-        }
-        None => {
-            let helper_text = Paragraph::new("Created with love by @fedeya")
-                .alignment(Alignment::Center)
-                .block(selectable_block(AppBlock::Response, app).title("Response"));
-
-            let status_blank = Paragraph::new(if app.is_loading {
-                "Loading..."
-            } else {
-                "Press <Enter> to send request"
-            })
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::White)),
-            )
-            .alignment(Alignment::Center);
-
-            frame.render_widget(helper_text, response_chunks[0]);
-            frame.render_widget(status_blank, response_chunks[1]);
-        }
     }
 }

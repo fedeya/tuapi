@@ -4,19 +4,37 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     prelude::CrosstermBackend,
     style::{Color, Style},
-    widgets::{Paragraph, Row, Table, TableState},
+    text::Span,
+    widgets::{Paragraph, Row, Table, TableState, Tabs},
     Frame,
 };
 
-use crate::app::{App, AppBlock, BodyContentType, BodyType, RequestTab};
+use crate::app::{App, AppBlock, BodyContentType, BodyType, OrderNavigation, RequestTab};
 
 use super::{input::create_textarea, selectable_block};
 
-pub fn render_request_tab(
-    app: &App,
-    frame: &mut Frame<'_, CrosstermBackend<Stdout>>,
-    request_chunks: Vec<Rect>,
-) {
+pub fn render_request_tab(app: &App, frame: &mut Frame<'_, CrosstermBackend<Stdout>>, area: Rect) {
+    let request_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(area);
+
+    let request_tabs = vec![
+        Span::styled("Body", Style::default().fg(Color::White)),
+        Span::styled("Query", Style::default().fg(Color::White)),
+        Span::styled("Headers", Style::default().fg(Color::White)),
+        // Span::styled("Auth", Style::default().fg(Color::White)),
+        // Span::styled("Cookies", Style::default().fg(Color::White)),
+    ];
+
+    let tab = Tabs::new(request_tabs)
+        .block(selectable_block(AppBlock::Request, app))
+        .divider(Span::raw("|"))
+        .select(app.request_tab.clone().get_index())
+        .highlight_style(Style::default().fg(Color::Green));
+
+    frame.render_widget(tab, request_chunks[0]);
+
     match app.request_tab {
         RequestTab::Body => {
             let body_chunks = Layout::default()
