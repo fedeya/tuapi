@@ -264,7 +264,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             app.response_scroll.0 = app.response_scroll.0.clamp(0, max_x);
 
-            let lines = syntax::highlight_response(r.text.clone());
+            let lines = syntax::highlight_response(r.text.clone(), r.content_type.clone());
 
             let response_p = Paragraph::new(lines)
                 .block(selectable_block(AppBlock::Response, app).title("Response"))

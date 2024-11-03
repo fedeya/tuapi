@@ -12,8 +12,16 @@ pub static PS: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
 pub static TS: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[cached]
-pub fn highlight_response(response: String) -> Vec<Line<'static>> {
-    let syntax = PS.find_syntax_by_extension("json").unwrap();
+pub fn highlight_response(response: String, content_type: String) -> Vec<Line<'static>> {
+    let syntax_name = match content_type.as_str() {
+        "application/json" => "json",
+        "application/xml" => "xml",
+        "text/html" => "html",
+        "text/plain" => "txt",
+        _ => "txt",
+    };
+
+    let syntax = PS.find_syntax_by_extension(syntax_name).unwrap();
     let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
 
     let mut lines: Vec<Line> = Vec::new();

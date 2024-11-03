@@ -129,6 +129,7 @@ impl OrderNavigation for AppBlock {
 #[derive(Debug)]
 pub struct Response {
     pub status_code: u16,
+    pub content_type: String,
     pub text: String,
 }
 
