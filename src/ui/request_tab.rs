@@ -79,29 +79,11 @@ pub fn render_request_tab(app: &App, frame: &mut Frame<'_, CrosstermBackend<Stdo
 
                 frame.render_widget(raw_body_input, body_chunks[0]);
             } else {
-                let rows: Vec<Row> = app
-                    .body_form
-                    .iter()
-                    .map(|(key, value)| {
-                        Row::new(vec![key.clone(), value.clone()])
-                            .style(Style::default().fg(Color::White))
-                    })
-                    .collect();
-
-                let table = Table::new(rows)
-                    .header(
-                        Row::new(vec!["Key", "Value"])
-                            .style(Style::default().fg(Color::Yellow))
-                            .bottom_margin(1),
-                    )
-                    .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
-                    .highlight_style(Style::default().fg(Color::Green))
-                    .highlight_symbol(">> ")
-                    .block(
-                        selectable_block(AppBlock::RequestContent, app)
-                            .title("Body")
-                            .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
-                    );
+                let table = create_kv_table(app.body_form.clone().into_iter().collect()).block(
+                    selectable_block(AppBlock::RequestContent, app)
+                        .title("Body")
+                        .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
+                );
 
                 let mut state = TableState::default();
 
@@ -111,29 +93,11 @@ pub fn render_request_tab(app: &App, frame: &mut Frame<'_, CrosstermBackend<Stdo
             }
         }
         RequestTab::Headers => {
-            let rows: Vec<Row> = app
-                .headers
-                .iter()
-                .map(|(key, value)| {
-                    Row::new(vec![key.clone(), value.clone()])
-                        .style(Style::default().fg(Color::White))
-                })
-                .collect();
-
-            let table = Table::new(rows)
-                .header(
-                    Row::new(vec!["Key", "Value"])
-                        .style(Style::default().fg(Color::Yellow))
-                        .bottom_margin(1),
-                )
-                .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
-                .highlight_style(Style::default().fg(Color::Green))
-                .highlight_symbol(">> ")
-                .block(
-                    selectable_block(AppBlock::RequestContent, app)
-                        .title("Headers")
-                        .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
-                );
+            let table = create_kv_table(app.headers.clone().into_iter().collect()).block(
+                selectable_block(AppBlock::RequestContent, app)
+                    .title("Headers")
+                    .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
+            );
 
             let mut state = TableState::default();
 
@@ -142,29 +106,11 @@ pub fn render_request_tab(app: &App, frame: &mut Frame<'_, CrosstermBackend<Stdo
             frame.render_stateful_widget(table, request_chunks[1], &mut state);
         }
         RequestTab::Query => {
-            let rows: Vec<Row> = app
-                .query_params
-                .iter()
-                .map(|(key, value)| {
-                    Row::new(vec![key.clone(), value.clone()])
-                        .style(Style::default().fg(Color::White))
-                })
-                .collect();
-
-            let table = Table::new(rows)
-                .header(
-                    Row::new(vec!["Key", "Value"])
-                        .style(Style::default().fg(Color::Yellow))
-                        .bottom_margin(1),
-                )
-                .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
-                .highlight_style(Style::default().fg(Color::Green))
-                .highlight_symbol(">> ")
-                .block(
-                    selectable_block(AppBlock::RequestContent, app)
-                        .title("Query Parameters")
-                        .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
-                );
+            let table = create_kv_table(app.query_params.clone()).block(
+                selectable_block(AppBlock::RequestContent, app)
+                    .title("Query Parameters")
+                    .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
+            );
 
             let mut state = TableState::default();
 
@@ -174,4 +120,23 @@ pub fn render_request_tab(app: &App, frame: &mut Frame<'_, CrosstermBackend<Stdo
         }
         _ => {}
     }
+}
+
+fn create_kv_table(pairs: Vec<(String, String)>) -> Table<'static> {
+    let rows: Vec<Row> = pairs
+        .iter()
+        .map(|(key, value)| {
+            Row::new(vec![key.clone(), value.clone()]).style(Style::default().fg(Color::White))
+        })
+        .collect();
+
+    Table::new(rows)
+        .header(
+            Row::new(vec!["Key", "Value"])
+                .style(Style::default().fg(Color::Yellow))
+                .bottom_margin(1),
+        )
+        .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
+        .highlight_style(Style::default().fg(Color::Green))
+        .highlight_symbol(">> ")
 }

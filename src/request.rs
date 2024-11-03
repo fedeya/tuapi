@@ -53,8 +53,8 @@ pub async fn send(req: Request) -> Response {
     match content_type.clone().to_str().unwrap().to_lowercase() {
         h if h.contains("application/json") => {
             let data = response.json::<serde_json::Value>().await.unwrap();
-            content_type_value = "application/json".to_string();
 
+            content_type_value = "application/json".to_string();
             text = format!("{:#}\n", data);
         }
 

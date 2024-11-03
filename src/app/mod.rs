@@ -1,7 +1,6 @@
 pub mod form;
 
 use crate::event::input::Input;
-use clap::ValueEnum;
 use form::Form;
 use std::{collections::HashMap, str::FromStr};
 
