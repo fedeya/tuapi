@@ -6,7 +6,8 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::{
     form::{Form, FormField, FormKind},
-    App, AppBlock, AppPopup, InputMode, OrderNavigation, Request, RequestTab,
+    App, AppBlock, AppPopup, BodyContentType, BodyType, InputMode, OrderNavigation, Request,
+    RequestTab,
 };
 
 pub async fn handle_input(app: &mut App, key: KeyEvent) {
@@ -24,7 +25,9 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                 }
                 AppBlock::RequestContent => {
                     if let RequestTab::Body = app.request_tab {
-                        app.input_mode = InputMode::Insert;
+                        if let BodyContentType::Text(_) = app.body_content_type {
+                            app.input_mode = InputMode::Insert;
+                        }
                     }
                 }
                 _ => {}
@@ -84,6 +87,23 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                             app.selected_query_param = 0;
                         }
                     }
+
+                    RequestTab::Body => {
+                        if let BodyContentType::Form = app.body_content_type {
+                            let quantity = app.body_form.len() as u16;
+
+                            if quantity == 0 {
+                                app.selected_form_field = 0;
+                                return;
+                            }
+
+                            if app.selected_form_field < quantity - 1 {
+                                app.selected_form_field += 1;
+                            } else {
+                                app.selected_form_field = 0;
+                            }
+                        }
+                    }
                     _ => {}
                 },
                 AppBlock::Method => app.method = app.method.previous(),
@@ -123,9 +143,74 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                             app.selected_query_param = quantity - 1;
                         }
                     }
+
+                    RequestTab::Body => {
+                        if let BodyContentType::Form = app.body_content_type {
+                            let quantity = app.body_form.len() as u16;
+
+                            if quantity == 0 {
+                                app.selected_form_field = 0;
+                                return;
+                            }
+
+                            if app.selected_form_field > 0 {
+                                app.selected_form_field -= 1;
+                            } else {
+                                app.selected_form_field = quantity - 1;
+                            }
+                        }
+                    }
                     _ => {}
                 },
                 AppBlock::Method => app.method = app.method.next(),
+                _ => {}
+            },
+            KeyCode::Char('c') => match app.selected_block {
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Body => {
+                        app.body_content_type = match app.body_content_type {
+                            BodyContentType::Text(_) => BodyContentType::Form,
+                            BodyContentType::Form => BodyContentType::Text(BodyType::Raw),
+                        };
+                    }
+                    _ => {}
+                },
+                _ => {}
+            },
+            KeyCode::Char('t') => match app.selected_block {
+                AppBlock::RequestContent => match app.request_tab {
+                    RequestTab::Body => {
+                        if let BodyContentType::Text(body_type) = app.body_content_type.clone() {
+                            let new_body_type = match body_type {
+                                BodyType::Raw => BodyType::Json,
+                                BodyType::Json => BodyType::Xml,
+                                BodyType::Xml => BodyType::Raw,
+                            };
+
+                            match new_body_type {
+                                BodyType::Json => {
+                                    app.headers.insert(
+                                        "Content-Type".to_owned(),
+                                        "application/json".to_owned(),
+                                    );
+                                }
+                                BodyType::Raw => {
+                                    app.headers
+                                        .insert("Content-Type".to_owned(), "text/plain".to_owned());
+                                }
+                                BodyType::Xml => {
+                                    app.headers.insert(
+                                        "Content-Type".to_owned(),
+                                        "application/xml".to_owned(),
+                                    );
+                                }
+                            }
+
+                            app.body_content_type = BodyContentType::Text(new_body_type);
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {}
             },
             KeyCode::Char('a') => match app.selected_block {
@@ -149,6 +234,19 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                             .title("Add Query Param");
 
                         app.popup = Some(AppPopup::FormPopup(form));
+                    }
+                    RequestTab::Body => {
+                        if let BodyContentType::Form = app.body_content_type {
+                            let key_input = FormField::new("Key", "key");
+
+                            let value_input = FormField::new("Value", "value");
+
+                            let form =
+                                Form::new(FormKind::AddBodyFormField, vec![key_input, value_input])
+                                    .title("Add Form Field");
+
+                            app.popup = Some(AppPopup::FormPopup(form));
+                        }
                     }
                     _ => {}
                 },
@@ -203,6 +301,31 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
 
                         app.popup = Some(AppPopup::FormPopup(form));
                     }
+                    RequestTab::Body => {
+                        if let BodyContentType::Form = app.body_content_type {
+                            let (key, value) = app
+                                .body_form
+                                .iter()
+                                .nth(app.selected_form_field as usize)
+                                .unwrap();
+
+                            let key_input = FormField::new("Key", "key").value(key);
+
+                            let value_input = FormField::new("Value", "value").value(value);
+
+                            let current_key = FormField::new("Current Key", "current_key")
+                                .value(&key)
+                                .hidden();
+
+                            let form = Form::new(
+                                FormKind::EditBodyFormField,
+                                vec![key_input, value_input, current_key],
+                            )
+                            .title("Edit Form Field");
+
+                            app.popup = Some(AppPopup::FormPopup(form));
+                        }
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -210,6 +333,10 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
             KeyCode::Char('d') => match app.selected_block {
                 AppBlock::RequestContent => match app.request_tab {
                     RequestTab::Headers => {
+                        if app.headers.len() == 0 {
+                            return;
+                        }
+
                         let key = app
                             .headers
                             .clone()
@@ -227,12 +354,39 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                         }
                     }
                     RequestTab::Query => {
+                        if app.query_params.len() == 0 {
+                            return;
+                        }
+
                         app.query_params.remove(app.selected_query_param as usize);
 
                         if app.selected_query_param as usize == app.query_params.len()
                             && app.query_params.len() != 0
                         {
                             app.selected_query_param -= 1;
+                        }
+                    }
+                    RequestTab::Body => {
+                        if let BodyContentType::Form = app.body_content_type {
+                            if app.body_form.len() == 0 {
+                                return;
+                            }
+
+                            let key = app
+                                .body_form
+                                .clone()
+                                .keys()
+                                .nth(app.selected_form_field as usize)
+                                .unwrap()
+                                .to_owned();
+
+                            app.body_form.remove(&key);
+
+                            if app.selected_header as usize == app.body_form.len()
+                                && app.body_form.len() != 0
+                            {
+                                app.selected_form_field -= 1;
+                            }
                         }
                     }
                     _ => {}

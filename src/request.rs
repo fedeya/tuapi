@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use reqwest::header::{HeaderMap, HeaderName};
 
-use crate::app::{Request, RequestMethod, Response};
+use crate::app::{BodyContentType, Request, RequestMethod, Response};
 
 pub async fn send(req: Request) -> Response {
     let method = match req.method {
@@ -29,8 +29,15 @@ pub async fn send(req: Request) -> Response {
         .headers(headers)
         .query(&req.query_params);
 
-    if !req.body.trim().is_empty() {
-        builder = builder.body(req.body);
+    match req.body_content_type {
+        BodyContentType::Text(_) => {
+            if !req.body.trim().is_empty() {
+                builder = builder.body(req.body);
+            }
+        }
+        BodyContentType::Form => {
+            builder = builder.form(&req.body_form);
+        }
     }
 
     let response = builder.send().await.unwrap();

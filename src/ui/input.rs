@@ -5,7 +5,7 @@ use ratatui::{
 };
 use syntect::easy::HighlightLines;
 
-use crate::app::{App, AppBlock, InputMode};
+use crate::app::{App, AppBlock, BodyContentType, BodyType, InputMode};
 use crate::event::input::Input;
 
 use super::syntax::{translate_colour, PS, TS};
@@ -37,7 +37,16 @@ pub fn create_input<'a>(input: &'a Input, app: &App, is_selected: bool) -> Parag
 }
 
 pub fn create_textarea<'a>(input: &'a Input, app: &App) -> Paragraph<'a> {
-    let syntax = PS.find_syntax_by_extension("json").unwrap();
+    let syntax_name = match app.body_content_type.clone() {
+        BodyContentType::Text(body_type) => match body_type {
+            BodyType::Json => "json",
+            BodyType::Raw => "txt",
+            BodyType::Xml => "xml",
+        },
+        BodyContentType::Form => "form",
+    };
+
+    let syntax = PS.find_syntax_by_extension(syntax_name).unwrap();
     let mut h = HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
 
     let mut lines = Vec::new();

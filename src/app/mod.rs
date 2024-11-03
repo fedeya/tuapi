@@ -108,8 +108,8 @@ impl OrderNavigation for RequestTab {
             Self::Body,
             Self::Query,
             Self::Headers,
-            Self::Auth,
-            Self::Cookies,
+            // Self::Auth,
+            // Self::Cookies,
         ]
     }
 }
@@ -144,6 +144,19 @@ impl Default for Coordinates {
     }
 }
 
+#[derive(Clone)]
+pub enum BodyType {
+    Json,
+    Raw,
+    Xml,
+}
+
+#[derive(Clone)]
+pub enum BodyContentType {
+    Text(BodyType),
+    Form,
+}
+
 pub enum AppPopup {
     ChangeMethod,
     FormPopup(Form),
@@ -155,6 +168,8 @@ pub struct Request {
     pub headers: HashMap<String, String>,
     pub query_params: Vec<(String, String)>,
     pub body: String,
+    pub body_content_type: BodyContentType,
+    pub body_form: HashMap<String, String>,
 }
 
 impl Request {
@@ -165,6 +180,8 @@ impl Request {
             headers: app.headers.clone(),
             body: app.raw_body.text.clone(),
             query_params: app.query_params.clone(),
+            body_content_type: app.body_content_type.clone(),
+            body_form: app.body_form.clone(),
         }
     }
 }
@@ -189,9 +206,14 @@ pub struct App {
     pub req_tx: Sender<Request>,
     pub is_loading: bool,
 
+    pub body_content_type: BodyContentType,
+
     pub headers: HashMap<String, String>,
     pub query_params: Vec<(String, String)>,
     pub response_scroll: (u16, u16),
+
+    pub body_form: HashMap<String, String>,
+    pub selected_form_field: u16,
 
     pub popup: Option<AppPopup>,
 }
@@ -208,10 +230,7 @@ fn handle_requests(mut req_rx: Receiver<Request>, res_tx: Sender<Option<Response
 
 impl Default for App {
     fn default() -> Self {
-        let headers = HashMap::from([
-            ("Content-Type".to_string(), "application/json".to_string()),
-            ("Accept".to_string(), "application/json".to_string()),
-        ]);
+        let headers = HashMap::from([("Content-Type".to_string(), "application/json".to_string())]);
 
         let (res_tx, res_rx) = channel(1);
         let (req_tx, req_rx) = channel(1);
@@ -238,6 +257,9 @@ impl Default for App {
             response: None,
             response_scroll: (0, 0),
             popup: None,
+            body_form: HashMap::new(),
+            selected_form_field: 0,
+            body_content_type: BodyContentType::Text(BodyType::Json),
         }
     }
 }

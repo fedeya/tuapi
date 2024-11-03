@@ -41,6 +41,8 @@ pub enum FormKind {
     EditHeader,
     AddQueryParam,
     EditQueryParam,
+    AddBodyFormField,
+    EditBodyFormField,
 }
 
 #[derive(Clone)]

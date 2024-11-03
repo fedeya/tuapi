@@ -139,5 +139,26 @@ fn handle_forms(form: Form, app: &mut App) {
 
             app.query_params[app.selected_query_param as usize] = (key, value);
         }
+
+        FormKind::AddBodyFormField => {
+            let key = values.get("key").unwrap().to_owned();
+            let value = values.get("value").unwrap().to_owned();
+
+            app.body_form.insert(key, value);
+        }
+
+        FormKind::EditBodyFormField => {
+            let current_key = values.get("current_key").unwrap().to_owned();
+            let key = values.get("key").unwrap().to_owned();
+            let value = values.get("value").unwrap().to_owned();
+
+            if current_key == key {
+                app.body_form.insert(key, value);
+            } else {
+                app.body_form.remove(&current_key);
+
+                app.body_form.insert(key, value);
+            }
+        }
     }
 }
