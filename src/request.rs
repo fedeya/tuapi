@@ -24,7 +24,10 @@ pub async fn send(req: Request) -> Response {
 
     let client = reqwest::Client::new();
 
-    let mut builder = client.request(method, &req.endpoint).headers(headers);
+    let mut builder = client
+        .request(method, &req.endpoint)
+        .headers(headers)
+        .query(&req.query_params);
 
     if !req.body.trim().is_empty() {
         builder = builder.body(req.body);

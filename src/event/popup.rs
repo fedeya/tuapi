@@ -125,5 +125,19 @@ fn handle_forms(form: Form, app: &mut App) {
 
             app.headers.insert(key, value);
         }
+
+        FormKind::AddQueryParam => {
+            let key = values.get("key").unwrap().to_owned();
+            let value = values.get("value").unwrap().to_owned();
+
+            app.query_params.push((key, value));
+        }
+
+        FormKind::EditQueryParam => {
+            let key = values.get("key").unwrap().to_owned();
+            let value = values.get("value").unwrap().to_owned();
+
+            app.query_params[app.selected_query_param as usize] = (key, value);
+        }
     }
 }

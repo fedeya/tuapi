@@ -148,6 +148,37 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
 
             frame.render_stateful_widget(table, request_chunks[1], &mut state);
         }
+        RequestTab::Query => {
+            let rows: Vec<Row> = app
+                .query_params
+                .iter()
+                .map(|(key, value)| {
+                    Row::new(vec![key.clone(), value.clone()])
+                        .style(Style::default().fg(Color::White))
+                })
+                .collect();
+
+            let table = Table::new(rows)
+                .header(
+                    Row::new(vec!["Key", "Value"])
+                        .style(Style::default().fg(Color::Yellow))
+                        .bottom_margin(1),
+                )
+                .widths(&[Constraint::Percentage(50), Constraint::Percentage(50)])
+                .highlight_style(Style::default().fg(Color::Green))
+                .highlight_symbol(">> ")
+                .block(
+                    selectable_block(AppBlock::RequestContent, app)
+                        .title("Query Parameters")
+                        .padding(ratatui::widgets::Padding::new(1, 1, 1, 1)),
+                );
+
+            let mut state = TableState::default();
+
+            state.select(Some(app.selected_query_param.into()));
+
+            frame.render_stateful_widget(table, request_chunks[1], &mut state);
+        }
         _ => {}
     }
 

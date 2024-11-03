@@ -39,6 +39,8 @@ impl FormField {
 pub enum FormKind {
     AddHeader,
     EditHeader,
+    AddQueryParam,
+    EditQueryParam,
 }
 
 #[derive(Clone)]

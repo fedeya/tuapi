@@ -6,7 +6,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::{
     form::{Form, FormField, FormKind},
-    App, AppBlock, AppPopup, InputMode, Navigation, OrderNavigation, Request, RequestTab,
+    App, AppBlock, AppPopup, InputMode, OrderNavigation, Request, RequestTab,
 };
 
 pub async fn handle_input(app: &mut App, key: KeyEvent) {
@@ -58,10 +58,30 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     RequestTab::Headers => {
                         let quantity = app.headers.len() as u16;
 
+                        if quantity == 0 {
+                            app.selected_query_param = 0;
+                            return;
+                        }
+
                         if app.selected_header < quantity - 1 {
                             app.selected_header += 1;
                         } else {
                             app.selected_header = 0;
+                        }
+                    }
+
+                    RequestTab::Query => {
+                        let quantity = app.query_params.len() as u16;
+
+                        if quantity == 0 {
+                            app.selected_query_param = 0;
+                            return;
+                        }
+
+                        if app.selected_query_param < quantity - 1 {
+                            app.selected_query_param += 1;
+                        } else {
+                            app.selected_query_param = 0;
                         }
                     }
                     _ => {}
@@ -78,10 +98,29 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     RequestTab::Headers => {
                         let quantity = app.headers.len() as u16;
 
+                        if quantity == 0 {
+                            app.selected_header = 0;
+                            return;
+                        }
+
                         if app.selected_header > 0 {
                             app.selected_header -= 1;
                         } else {
                             app.selected_header = quantity - 1;
+                        }
+                    }
+                    RequestTab::Query => {
+                        let quantity = app.query_params.len() as u16;
+
+                        if quantity == 0 {
+                            app.selected_query_param = 0;
+                            return;
+                        }
+
+                        if app.selected_query_param > 0 {
+                            app.selected_query_param -= 1;
+                        } else {
+                            app.selected_query_param = quantity - 1;
                         }
                     }
                     _ => {}
@@ -98,6 +137,16 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
 
                         let form = Form::new(FormKind::AddHeader, vec![key_input, value_input])
                             .title("Add Header");
+
+                        app.popup = Some(AppPopup::FormPopup(form));
+                    }
+                    RequestTab::Query => {
+                        let key_input = FormField::new("Key", "key");
+
+                        let value_input = FormField::new("Value", "value");
+
+                        let form = Form::new(FormKind::AddQueryParam, vec![key_input, value_input])
+                            .title("Add Query Param");
 
                         app.popup = Some(AppPopup::FormPopup(form));
                     }
@@ -134,6 +183,26 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
 
                         app.popup = Some(AppPopup::FormPopup(form));
                     }
+                    RequestTab::Query => {
+                        let (key, value) =
+                            app.query_params[app.selected_query_param as usize].clone();
+
+                        let key_input = FormField::new("Key", "key").value(&key);
+
+                        let value_input = FormField::new("Value", "value").value(&value);
+
+                        let index_input = FormField::new("Index", "index")
+                            .value(&app.selected_query_param.to_string())
+                            .hidden();
+
+                        let form = Form::new(
+                            FormKind::EditQueryParam,
+                            vec![key_input, value_input, index_input],
+                        )
+                        .title("Edit Query Param");
+
+                        app.popup = Some(AppPopup::FormPopup(form));
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -155,6 +224,15 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                             && app.headers.len() != 0
                         {
                             app.selected_header -= 1;
+                        }
+                    }
+                    RequestTab::Query => {
+                        app.query_params.remove(app.selected_query_param as usize);
+
+                        if app.selected_query_param as usize == app.query_params.len()
+                            && app.query_params.len() != 0
+                        {
+                            app.selected_query_param -= 1;
                         }
                     }
                     _ => {}

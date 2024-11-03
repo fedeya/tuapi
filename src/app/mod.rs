@@ -153,6 +153,7 @@ pub struct Request {
     pub method: RequestMethod,
     pub endpoint: String,
     pub headers: HashMap<String, String>,
+    pub query_params: Vec<(String, String)>,
     pub body: String,
 }
 
@@ -163,6 +164,7 @@ impl Request {
             endpoint: app.endpoint.text.clone(),
             headers: app.headers.clone(),
             body: app.raw_body.text.clone(),
+            query_params: app.query_params.clone(),
         }
     }
 }
@@ -179,6 +181,7 @@ pub struct App {
     pub selected_block: AppBlock,
 
     pub selected_header: u16,
+    pub selected_query_param: u16,
 
     pub response: Option<Response>,
 
@@ -187,6 +190,7 @@ pub struct App {
     pub is_loading: bool,
 
     pub headers: HashMap<String, String>,
+    pub query_params: Vec<(String, String)>,
     pub response_scroll: (u16, u16),
 
     pub popup: Option<AppPopup>,
@@ -217,10 +221,12 @@ impl Default for App {
         Self {
             input_mode: InputMode::Normal,
             endpoint: Input {
-                text: String::from("https://fakestoreapi.com/products"),
+                text: String::from("https://httpbin.org/get"),
                 ..Input::default()
             },
             selected_header: 0,
+            selected_query_param: 0,
+            query_params: Vec::new(),
             is_loading: false,
             headers,
             res_rx,
