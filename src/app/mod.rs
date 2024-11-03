@@ -3,7 +3,7 @@ pub mod form;
 use crate::event::input::Input;
 use clap::ValueEnum;
 use form::Form;
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
@@ -15,7 +15,7 @@ pub enum InputMode {
     Insert,
 }
 
-#[derive(Clone, PartialEq, ValueEnum)]
+#[derive(Clone, PartialEq)]
 pub enum RequestMethod {
     Get,
     Post,
@@ -32,6 +32,21 @@ impl ToString for RequestMethod {
             Self::Put => "PUT".to_string(),
             Self::Delete => "DELETE".to_string(),
             Self::Patch => "PATCH".to_string(),
+        }
+    }
+}
+
+impl FromStr for RequestMethod {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "get" => Ok(Self::Get),
+            "post" => Ok(Self::Post),
+            "put" => Ok(Self::Put),
+            "delete" => Ok(Self::Delete),
+            "patch" => Ok(Self::Patch),
+            _ => Err("Invalid method".to_string()),
         }
     }
 }
