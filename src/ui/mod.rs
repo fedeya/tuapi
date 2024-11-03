@@ -1,7 +1,7 @@
 mod input;
 mod syntax;
 
-use std::io::Stdout;
+use std::{io::Stdout, iter::once};
 
 use ratatui::{
     prelude::{Alignment, Constraint, CrosstermBackend, Direction, Layout, Rect},
@@ -11,7 +11,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::{App, AppBlock, AppPopup, InputMode, RequestMethod, RequestTab};
+use crate::app::{App, AppBlock, AppPopup, InputMode, OrderNavigation, RequestMethod, RequestTab};
 
 use self::input::{create_input, create_textarea};
 
@@ -70,6 +70,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
             RequestMethod::Post => Color::Blue,
             RequestMethod::Put => Color::Yellow,
             RequestMethod::Delete => Color::Red,
+            RequestMethod::Patch => Color::Magenta,
         }))
         .alignment(Alignment::Center);
 
@@ -104,7 +105,7 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
     let tab = Tabs::new(request_tabs)
         .block(selectable_block(AppBlock::Request, app))
         .divider(Span::raw("|"))
-        .select(app.request_tab.clone().into())
+        .select(app.request_tab.clone().get_index())
         .highlight_style(Style::default().fg(Color::Green));
 
     frame.render_widget(method_p, header_chunks[0]);
@@ -225,10 +226,60 @@ pub fn draw(frame: &mut Frame<CrosstermBackend<Stdout>>, app: &mut App) {
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::White));
 
-            let area = centered_rect(60, 20, frame.size());
+            let methods = app.method.get_order();
+
+            let methods_blocks = methods.iter().enumerate().map(|(i, method)| {
+                let cloned_method = method.clone();
+
+                let border_style = match cloned_method == app.method.clone() {
+                    true => Style::default().fg(Color::Green),
+                    false => Style::default().fg(Color::White),
+                };
+
+                let style = Style::default().fg(match cloned_method {
+                    RequestMethod::Get => Color::Green,
+                    RequestMethod::Post => Color::Blue,
+                    RequestMethod::Put => Color::Yellow,
+                    RequestMethod::Delete => Color::Red,
+                    RequestMethod::Patch => Color::Magenta,
+                });
+
+                let block = Paragraph::new(cloned_method.to_string())
+                    .style(style)
+                    .alignment(Alignment::Center)
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .border_style(border_style),
+                    );
+
+                (i, block)
+            });
+
+            let height = app.method.get_order().len() as u16 * 3;
+
+            let width = 40;
+
+            let area = centered_rect(width, height + 4, frame.size());
 
             frame.render_widget(Clear, area);
             frame.render_widget(block, area);
+
+            methods_blocks.for_each(|(index, p)| {
+                frame.render_widget(
+                    p,
+                    Rect::new(area.x + 2, area.y + index as u16 * 3 + 1, width - 4, 3),
+                );
+            });
+
+            let help_p = Paragraph::new("Use j/k to navigate, Enter to select")
+                .style(Style::default().fg(Color::White))
+                .alignment(Alignment::Center);
+
+            frame.render_widget(
+                help_p,
+                Rect::new(area.x + 2, area.y + height + 2, width - 4, 1),
+            );
         }
         Some(AppPopup::FormPopup(form)) => {
             let block = Block::default()

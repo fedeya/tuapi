@@ -10,6 +10,7 @@ pub async fn send(req: Request) -> Response {
         RequestMethod::Post => reqwest::Method::POST,
         RequestMethod::Put => reqwest::Method::PUT,
         RequestMethod::Delete => reqwest::Method::DELETE,
+        RequestMethod::Patch => reqwest::Method::PATCH,
     };
 
     let mut headers = HeaderMap::new();

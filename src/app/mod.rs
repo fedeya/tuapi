@@ -14,11 +14,12 @@ pub enum InputMode {
     Insert,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum RequestMethod {
     Get,
     Post,
     Put,
+    Patch,
     Delete,
 }
 
@@ -29,7 +30,49 @@ impl ToString for RequestMethod {
             Self::Post => "POST".to_string(),
             Self::Put => "PUT".to_string(),
             Self::Delete => "DELETE".to_string(),
+            Self::Patch => "PATCH".to_string(),
         }
+    }
+}
+
+pub trait OrderNavigation: Clone + PartialEq {
+    fn get_order(&self) -> Vec<Self>
+    where
+        Self: Sized;
+    fn next(&self) -> Self
+    where
+        Self: Sized,
+    {
+        let order = self.get_order();
+
+        return order[(order.iter().position(|r| r == self).unwrap() + 1) % order.len()].clone();
+    }
+    fn previous(&self) -> Self
+    where
+        Self: Sized,
+    {
+        let order = self.get_order();
+
+        let index = order.iter().position(|r| r == self).unwrap();
+
+        if index == 0 {
+            return order[order.len() - 1].clone();
+        }
+
+        return order[index - 1].clone();
+    }
+
+    fn get_index(&self) -> usize
+    where
+        Self: Sized,
+    {
+        self.get_order().iter().position(|r| r == self).unwrap()
+    }
+}
+
+impl OrderNavigation for RequestMethod {
+    fn get_order(&self) -> Vec<Self> {
+        vec![Self::Get, Self::Post, Self::Put, Self::Patch, Self::Delete]
     }
 }
 
@@ -42,7 +85,7 @@ pub enum AppBlock {
     Response,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum RequestTab {
     Body,
     Query,
@@ -59,105 +102,27 @@ pub trait Navigation {
     fn previous(&mut self) {}
 }
 
-impl From<RequestTab> for usize {
-    fn from(tab: RequestTab) -> Self {
-        match tab {
-            RequestTab::Body => 0,
-            RequestTab::Query => 1,
-            RequestTab::Headers => 2,
-            RequestTab::Auth => 3,
-            RequestTab::Cookies => 4,
-        }
+impl OrderNavigation for RequestTab {
+    fn get_order(&self) -> Vec<Self> {
+        vec![
+            Self::Body,
+            Self::Query,
+            Self::Headers,
+            Self::Auth,
+            Self::Cookies,
+        ]
     }
 }
 
-impl Into<RequestTab> for usize {
-    fn into(self) -> RequestTab {
-        match self {
-            0 => RequestTab::Body,
-            1 => RequestTab::Query,
-            2 => RequestTab::Headers,
-            3 => RequestTab::Auth,
-            4 => RequestTab::Cookies,
-            _ => panic!("Invalid tab index"),
-        }
-    }
-}
-
-impl Navigation for RequestTab {
-    fn next(&mut self) {
-        let mut selected_tab: usize = self.clone().into();
-
-        selected_tab += 1;
-
-        if selected_tab > 4 {
-            selected_tab = 0;
-        }
-
-        *self = selected_tab.into();
-    }
-
-    fn previous(&mut self) {
-        let mut seleced_tab: usize = self.clone().into();
-
-        if seleced_tab == 0 {
-            seleced_tab = 4;
-        } else {
-            seleced_tab -= 1;
-        }
-
-        *self = seleced_tab.into();
-    }
-}
-
-impl From<AppBlock> for u16 {
-    fn from(block: AppBlock) -> Self {
-        match block {
-            AppBlock::Method => 1,
-            AppBlock::Endpoint => 2,
-            AppBlock::Request => 3,
-            AppBlock::RequestContent => 4,
-            AppBlock::Response => 5,
-        }
-    }
-}
-
-impl Into<AppBlock> for u16 {
-    fn into(self) -> AppBlock {
-        match self {
-            1 => AppBlock::Method,
-            2 => AppBlock::Endpoint,
-            3 => AppBlock::Request,
-            4 => AppBlock::RequestContent,
-            5 => AppBlock::Response,
-            _ => panic!("Invalid block index"),
-        }
-    }
-}
-
-impl Navigation for AppBlock {
-    fn next(&mut self) {
-        let mut selected_block: u16 = self.clone().into();
-
-        selected_block += 1;
-
-        if selected_block > 5 {
-            selected_block = 1;
-        }
-
-        *self = selected_block.into();
-    }
-
-    fn previous(&mut self) {
-        let mut selected_block: u16 = self.clone().into();
-
-        selected_block -= 1;
-
-        if selected_block == 0 {
-            selected_block = 5;
-        }
-
-        *self = selected_block.into();
+impl OrderNavigation for AppBlock {
+    fn get_order(&self) -> Vec<Self> {
+        vec![
+            Self::Method,
+            Self::Endpoint,
+            Self::Request,
+            Self::RequestContent,
+            Self::Response,
+        ]
     }
 }
 

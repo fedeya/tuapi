@@ -5,8 +5,8 @@ mod popup;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::{
-    form::Form, form::FormField, form::FormKind, App, AppBlock, AppPopup, InputMode, Navigation,
-    Request, RequestMethod, RequestTab,
+    form::{Form, FormField, FormKind},
+    App, AppBlock, AppPopup, InputMode, Navigation, OrderNavigation, Request, RequestTab,
 };
 
 pub async fn handle_input(app: &mut App, key: KeyEvent) {
@@ -30,10 +30,10 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                 _ => {}
             },
             KeyCode::Tab => {
-                app.selected_block.next();
+                app.selected_block = app.selected_block.next();
             }
             KeyCode::BackTab => {
-                app.selected_block.previous();
+                app.selected_block = app.selected_block.previous();
             }
             KeyCode::Enter => match app.selected_block {
                 AppBlock::Request => {
@@ -52,7 +52,7 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     navigation::scroll_down_response(app);
                 }
                 AppBlock::Request => {
-                    app.request_tab.previous();
+                    app.request_tab = app.request_tab.previous();
                 }
                 AppBlock::RequestContent => match app.request_tab {
                     RequestTab::Headers => {
@@ -66,18 +66,14 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     }
                     _ => {}
                 },
-                AppBlock::Method => {
-                    app.method = RequestMethod::Get;
-                }
+                AppBlock::Method => app.method = app.method.previous(),
                 _ => {}
             },
             KeyCode::Char('k') => match app.selected_block {
                 AppBlock::Response => {
                     navigation::scroll_up_response(app);
                 }
-                AppBlock::Request => {
-                    app.request_tab.next();
-                }
+                AppBlock::Request => app.request_tab = app.request_tab.next(),
                 AppBlock::RequestContent => match app.request_tab {
                     RequestTab::Headers => {
                         let quantity = app.headers.len() as u16;
@@ -90,9 +86,7 @@ pub async fn handle_input(app: &mut App, key: KeyEvent) {
                     }
                     _ => {}
                 },
-                AppBlock::Method => {
-                    app.method = RequestMethod::Post;
-                }
+                AppBlock::Method => app.method = app.method.next(),
                 _ => {}
             },
             KeyCode::Char('a') => match app.selected_block {

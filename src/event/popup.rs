@@ -1,6 +1,6 @@
 use crate::app::{
     form::{Form, FormKind},
-    App, AppPopup, InputMode, Navigation,
+    App, AppPopup, InputMode, Navigation, OrderNavigation,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 
@@ -85,6 +85,15 @@ pub fn handle_popup_events(app: &mut App, key: KeyEvent) {
             },
         },
 
+        AppPopup::ChangeMethod => match key.code {
+            KeyCode::Char('k') => app.method = app.method.previous(),
+            KeyCode::Char('j') => app.method = app.method.next(),
+            KeyCode::Enter => {
+                app.popup = None;
+            }
+            KeyCode::Esc => app.popup = None,
+            _ => {}
+        },
         _ => {}
     }
 }
