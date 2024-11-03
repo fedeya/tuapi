@@ -48,7 +48,7 @@ pub async fn send(req: Request) -> Response {
 
     let text: String;
 
-    let mut content_type_value = String::new();
+    let content_type_value: String;
 
     match content_type.clone().to_str().unwrap().to_lowercase() {
         h if h.contains("application/json") => {

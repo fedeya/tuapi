@@ -1,9 +1,11 @@
 mod app;
+mod cli;
 mod event;
 mod request;
 mod ui;
 
 use app::{App, InputMode};
+use clap::Parser;
 use crossterm::{
     event::{self as crossterm_event, Event, KeyCode},
     execute,
@@ -17,9 +19,17 @@ use std::{
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    let cli = cli::Cli::parse();
+
     let mut terminal = setup_terminal()?;
 
     let mut app = App::default();
+
+    app.endpoint.text = cli.endpoint.unwrap_or_default();
+
+    if let Some(method) = cli.method {
+        app.method = method;
+    }
 
     let original_hook = std::panic::take_hook();
 
